@@ -1,0 +1,9 @@
+.bender
+Bender.lock
+.vscode
+.DS_Store
+*.vcd
+verif/build
+verif/out
+verif/*.flist
+sw/*/build

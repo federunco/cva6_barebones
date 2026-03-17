@@ -1,0 +1,16 @@
+package:
+  name: cva6_barebones
+  authors: ["Federico Runco (federico.runco@gmail.com)"]
+
+dependencies:
+  cva6: { git: "https://github.com/openhwgroup/cva6.git", rev: "master" }
+  axi: { git: "https://github.com/pulp-platform/axi.git", version: 0.31.1 }
+
+sources:
+  - hw/include/cva6_barebones_pkg.sv
+  - hw/sram.sv
+  - hw/vendor/axi2mem.sv
+  - hw/cva6_barebones.sv
+  - target: soc_verilate
+    files:
+      - verif/tb_boot.sv
