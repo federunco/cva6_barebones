@@ -10,7 +10,7 @@
 // distributed under the License is distributed on an “AS IS” BASIS, WITHOUT 
 // WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the 
 // License for the specific language governing permissions and limitations 
-// under the License. 
+// under the License.
 
 `timescale 1ns/1ps
 
@@ -25,6 +25,25 @@ module tb_boot;
 
 	string mem_hex;
 	int unsigned cycle_count;
+	int unsigned gpr_idx;
+
+	task automatic dump_core;
+		$display("[SoC TESTBENCH] ===== CORE DUMP @ cycle %0d =====", cycle_count);
+		for (gpr_idx = 0; gpr_idx < 32; gpr_idx += 4) begin
+			$display("[SoC TESTBENCH] x%-2d = 0x%016h x%-2d = 0x%016h x%-2d = 0x%016h x%-2d = 0x%016h",
+				gpr_idx,
+				dut.i_cva6.issue_stage_i.i_issue_read_operands.gen_asic_regfile.i_ariane_regfile.mem[gpr_idx],
+				gpr_idx + 1,
+				dut.i_cva6.issue_stage_i.i_issue_read_operands.gen_asic_regfile.i_ariane_regfile.mem[gpr_idx + 1],
+				gpr_idx + 2,
+				dut.i_cva6.issue_stage_i.i_issue_read_operands.gen_asic_regfile.i_ariane_regfile.mem[gpr_idx + 2],
+				gpr_idx + 3,
+				dut.i_cva6.issue_stage_i.i_issue_read_operands.gen_asic_regfile.i_ariane_regfile.mem[gpr_idx + 3]
+			);
+		end
+		$display("[SoC TESTBENCH] pc = 0x%016h", dut.i_cva6.pc_id_ex);
+		$display("[SoC TESTBENCH] =================================");
+	endtask
 
 	cva6_barebones dut (
 		.clk_i (clk_i),
@@ -40,6 +59,9 @@ module tb_boot;
 		rst_ni = 1'b0;
 		cycle_count = 0;
 
+		$dumpfile("tb_boot.vcd");
+		$dumpvars(0);
+
 		if (!$value$plusargs("memhex=%s", mem_hex)) begin
 			$fatal(1, "Missing +memhex=<path-to-program.hex>");
 		end
@@ -47,11 +69,9 @@ module tb_boot;
 		$display("[SoC TESTBENCH] Loading SRAM image from %s", mem_hex);
 		$readmemh(mem_hex, dut.i_sram.mem);
 
-		$dumpfile("tb_boot.vcd");
-		$dumpvars(0);
-
 		repeat (10) @(posedge clk_i);
 		rst_ni = 1'b1;
+		$display("[SoC TESTBENCH] rst_ni released");
 	end
 
 	always @(posedge clk_i) begin
@@ -62,10 +82,12 @@ module tb_boot;
 
 			if (dut.i_sram.mem[SIG_WORD_IDX] == SIG_VALUE) begin
 				$display("[SoC TESTBENCH] PASS: signature detected at cycle %0d", cycle_count);
+				dump_core();
 				$finish;
 			end
 
 			if (cycle_count > 500000) begin
+				dump_core();
 				$fatal(1, "[SoC TESTBENCH] FAIL: signature was not written, timeout");
 			end
 		end

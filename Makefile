@@ -61,6 +61,8 @@ verilate:
 		--binary \
 		--top-module tb_boot \
 		-F "$(FLIST)" \
+		--trace-fst \
+		--trace-structs \
 		-Mdir "$(VERIF_DIR)/build" \
 		-o $(VERILATED_TB)
 

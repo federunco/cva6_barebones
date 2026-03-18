@@ -111,6 +111,7 @@ module cva6_barebones (
 	logic [AxiUserWidth-1:0]	sram_mem_user_r;
 	logic [AxiDataWidth-1:0]	sram_mem_rdata;
 
+	// TODO: switch to axi_to_mem_intf
 	axi2mem #(
 		.AXI_ID_WIDTH (AxiIdWidthSlave),
 		.AXI_ADDR_WIDTH (AxiAddrWidth),
