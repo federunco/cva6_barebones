@@ -15,8 +15,7 @@
 module bb_sram #(
 	parameter int unsigned ADDR_WIDTH = 64,
 	parameter int unsigned DATA_WIDTH = 64,
-	parameter int unsigned SIZE_BYTES = 18 * 1024 * 1024,
-	parameter int unsigned ATOP_WIDTH = 6
+	parameter int unsigned SIZE_BYTES = 18 * 1024 * 1024
 )(
 	input  logic                        clk_i,
 	input  logic                        rst_ni,
@@ -24,7 +23,6 @@ module bb_sram #(
 	input  logic [ADDR_WIDTH-1:0]       mem_addr_i,
 	input  logic [DATA_WIDTH-1:0]       mem_wdata_i,
 	input  logic [DATA_WIDTH/8-1:0]     mem_strb_i,
-	input  logic [ATOP_WIDTH-1:0]       mem_atop_i,
 	input  logic                        mem_we_i,
 	output logic                        mem_rvalid_o,
 	output logic [DATA_WIDTH-1:0]       mem_rdata_o
@@ -61,7 +59,4 @@ module bb_sram #(
 			end
 		end
 	end
-
-	logic _unused_mem_atop;
-	assign _unused_mem_atop = |mem_atop_i;
 endmodule

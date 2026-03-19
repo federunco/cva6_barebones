@@ -23,6 +23,10 @@ VERILATOR := verilator
 TARGET_CVA6_ISA := cv64a6_imafdc_sv39
 VERILATED_TB := tb_boot_exe
 PROGRAM ?= not_set
+TIMEOUT ?= 500000
+RI_PATH = $(shell $(BENDER) path register_interface)
+REGGEN = $(RI_PATH)/vendor/lowrisc_opentitan/util/regtool.py
+
 
 SIM_OUT_DIR := $(VERIF_DIR)/out/run-$(shell date +%Y-%m-%d)-$(PROGRAM)
 
@@ -36,7 +40,13 @@ SIM_BIN := $(VERIF_DIR)/build/$(VERILATED_TB)
 .PHONY: getdeps build-program verilate run clean
 
 getdeps: Bender.yml
-	bender update
+	$(BENDER) update
+
+hw/uart/reg:
+	mkdir -p hw/uart/reg
+	python3 $(REGGEN) -r -t ./hw/uart/reg ./hw/uart/uart.hjson 
+
+peripherals: hw/uart/reg
 
 build-program:
 	@if [ ! -f "$(PROGRAM_MAKEFILE)" ]; then \
@@ -46,12 +56,16 @@ build-program:
 	@echo $(BASE_HEADER) Building program $(PROGRAM)
 	$(MAKE) -C "$(PROGRAM_DIR)"	
 
-verilate:
+verilate: peripherals
 	@echo $(BASE_HEADER) Compiling the design
 	$(BENDER) script flist-plus -t $(TARGET_CVA6_ISA) -t soc_verilate > tmp.flist
 	# HPDCache does not compile, TODO: investigate, not used by the selected ISA, can be removed from flist
 	grep -v "hpdcache" tmp.flist > "$(FLIST)"
 	rm tmp.flist
+
+	# --trace-fst
+	# --trace-structs 
+
 	$(VERILATOR) \
 		--sv \
 		--timing \
@@ -59,10 +73,11 @@ verilate:
 		-Wno-TIMESCALEMOD \
 		-Wno-fatal \
 		--binary \
+		-O3 \
+		--threads 4 \
+		-j 4 \
 		--top-module tb_boot \
 		-F "$(FLIST)" \
-		--trace-fst \
-		--trace-structs \
 		-Mdir "$(VERIF_DIR)/build" \
 		-o $(VERILATED_TB)
 
@@ -77,7 +92,7 @@ run: build-program verilate
 	@echo $(BASE_HEADER) Copied $$elf_file in $(SIM_OUT_DIR)/program.elf
 	@echo $(BASE_HEADER) Copied $$hex_file in $(MEMHEX)
 	@echo $(BASE_HEADER) Starting simulation
-	"$(SIM_BIN)" +memhex="$(MEMHEX)" | tee $(SIM_OUT_DIR)/output.txt
+	"$(SIM_BIN)" +memhex="$(MEMHEX)" +timeout=$(TIMEOUT) | tee $(SIM_OUT_DIR)/output.txt
 	mv $(ROOT_DIR)/trace_hart_0.dasm $(SIM_OUT_DIR)/trace_hart_0.dasm 
 	@echo $(BASE_HEADER) SoC simulation terminated
 	@echo $(BASE_HEADER) Results transcripts and artifacts available at $(SIM_OUT_DIR)
@@ -91,4 +106,5 @@ clean:
 	rm -rf "$(SIM_OUT_BASE)"
 	rm -rf "$(VERIF_DIR)/build"
 	rm -f "$(FLIST_RAW)" "$(FLIST)"
+	rm -rf hw/uart/reg
 

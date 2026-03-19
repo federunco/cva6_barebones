@@ -12,12 +12,20 @@
 // License for the specific language governing permissions and limitations 
 // under the License.
 
-#include <stdint.h>
-#include <stdio.h>
-#include "uart.h"
+package uart_pkg;
 
-int main(void) {
-	set_uart_div(5000000); // For simulation speedup, set baudrate to an absurd value
-    printf("Hello, world!");
-	return 0;
-}
+	typedef enum logic[3:0] {
+		IDLE 		= 4'b0000,
+		START_BIT 	= 4'b0001,
+		B0 			= 4'b1000,
+		B1 			= 4'b1001,
+		B2 			= 4'b1010,
+		B3 			= 4'b1011,
+		B4	 		= 4'b1100,
+		B5 			= 4'b1101,
+		B6 			= 4'b1110,
+		B7 			= 4'b1111,
+		STOP_BIT 	= 4'b0010
+	} uart_state_t;
+
+endpackage

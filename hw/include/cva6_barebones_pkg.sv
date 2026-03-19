@@ -21,15 +21,17 @@ package cva6_barebones_pkg;
 
 	// AXI Crossbar configuration
 	localparam int unsigned axi_master_cnt = 1; // Number of bus masters on the AXI crossbar
-	localparam int unsigned axi_periph_cnt = 1; // Number of peripherals on the AXI crossbar
+	localparam int unsigned axi_periph_cnt = 2; // Number of peripherals on the AXI crossbar
 
 	// AXI Peripherals and address map
 	typedef enum int unsigned {
-		DEV_SRAM = 0
+		DEV_SRAM = 0,
+		DEV_UART = 1
 	} axi_peripherals;
 	
 	localparam axi_pkg::xbar_rule_64_t [axi_periph_cnt-1:0] addr_map = '{
-		'{ idx: DEV_SRAM, start_addr: 64'h8000_0000, end_addr: 64'h8000_0000 + 64'h0180_0000 }
+		'{ idx: DEV_SRAM, start_addr: 64'h8000_0000, end_addr: 64'h8000_0000 + 64'h0180_0000 },
+		'{ idx: DEV_UART, start_addr: 64'h1000_0000, end_addr: 64'h1000_0000 + 64'h0000_1000 }
 	};
 
 	// ---------------------------------------------------
@@ -63,6 +65,7 @@ package cva6_barebones_pkg;
 
 	typedef logic [AxiAddrWidth-1:0]	axi_addr_t;
 	typedef logic [AxiIdWidth-1:0]		axi_id_t;
+	typedef logic [AxiIdWidthSlave-1:0]	axi_id_slave_t;
 	typedef logic [AxiDataWidth-1:0]	axi_data_t;
 	typedef logic [AxiDataWidth/8-1:0]	axi_strb_t;
 	typedef logic [AxiUserWidth-1:0]	axi_user_t;

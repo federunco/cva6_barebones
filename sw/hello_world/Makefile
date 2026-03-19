@@ -42,9 +42,9 @@ $(BUILD_DIR):
 
 $(ELF): $(LDSCRIPT) $(CRT) $(SRC) | $(BUILD_DIR)
 	"$(CC)" \
-		-nostdlib \
 		-nostartfiles \
 		-ffreestanding \
+		-I../common \
 		-march=rv64gc \
 		-mabi=lp64 \
 		-mcmodel=medany \

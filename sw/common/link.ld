@@ -29,5 +29,8 @@ SECTIONS
 	} > SRAM
 
 	. = ALIGN(16);
+	PROVIDE(end = .);
+	PROVIDE(_end = .);
+	PROVIDE(__end = .);
 	__stack_top = ORIGIN(SRAM) + LENGTH(SRAM);
 }

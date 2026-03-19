@@ -17,6 +17,9 @@
 module cva6_barebones (
 	input 	logic clk_i,
 	input 	logic rst_ni,
+
+	input	logic rx_i,
+	output	logic tx_o
 );
 	import cva6_barebones_pkg::*;
 
@@ -113,40 +116,63 @@ module cva6_barebones (
 
 	// TODO: switch to axi_to_mem_intf
 	axi2mem #(
-		.AXI_ID_WIDTH (AxiIdWidthSlave),
-		.AXI_ADDR_WIDTH (AxiAddrWidth),
-		.AXI_DATA_WIDTH (AxiDataWidth),
-		.AXI_USER_WIDTH (AxiUserWidth)
+		.AXI_ID_WIDTH	(AxiIdWidthSlave),
+		.AXI_ADDR_WIDTH	(AxiAddrWidth),
+		.AXI_DATA_WIDTH	(AxiDataWidth),
+		.AXI_USER_WIDTH	(AxiUserWidth)
 	) i_sram_axiconv (
-		.clk_i (clk_i),
-		.rst_ni (rst_ni),
-		.slave (master[DEV_SRAM]),
-		.req_o (sram_mem_req),
-		.we_o (sram_mem_we),
-		.addr_o (sram_mem_addr),
-		.be_o (sram_mem_strb),
-		.user_o (sram_mem_user_w),
-		.data_o (sram_mem_wdata),
-		.user_i (sram_mem_user_r),
-		.data_i (sram_mem_rdata)
+		.clk_i	(clk_i),
+		.rst_ni	(rst_ni),
+		.slave	(master[DEV_SRAM]),
+		.req_o	(sram_mem_req),
+		.we_o	(sram_mem_we),
+		.addr_o	(sram_mem_addr),
+		.be_o	(sram_mem_strb),
+		.user_o	(sram_mem_user_w),
+		.data_o	(sram_mem_wdata),
+		.user_i	(sram_mem_user_r),
+		.data_i	(sram_mem_rdata)
 	);
 
 	bb_sram #(
-		.ADDR_WIDTH (AxiAddrWidth),
-		.DATA_WIDTH (AxiDataWidth),
-		.SIZE_BYTES (18 * 1024 * 1024) // TODO: make it configurable in package
+		.ADDR_WIDTH	(AxiAddrWidth),
+		.DATA_WIDTH	(AxiDataWidth),
+		.SIZE_BYTES	(18 * 1024 * 1024) // TODO: make it configurable in package
 	) i_sram (
-		.clk_i (clk_i),
-		.rst_ni (rst_ni),
-		.mem_req_i (sram_mem_req),
-		.mem_addr_i (sram_mem_addr),
-		.mem_wdata_i (sram_mem_wdata),
-		.mem_strb_i (sram_mem_strb),
-		.mem_atop_i ('0),
-		.mem_we_i (sram_mem_we),
-		.mem_rvalid_o (),
-		.mem_rdata_o (sram_mem_rdata)
+		.clk_i			(clk_i),
+		.rst_ni			(rst_ni),
+		.mem_req_i		(sram_mem_req),
+		.mem_addr_i		(sram_mem_addr),
+		.mem_wdata_i	(sram_mem_wdata),
+		.mem_strb_i 	(sram_mem_strb),
+		.mem_we_i 		(sram_mem_we),
+		.mem_rvalid_o 	(),
+		.mem_rdata_o 	(sram_mem_rdata)
 	);
 
 	assign sram_mem_user_r = '0;
+
+	// UART
+	noc_req_t 	uart_req;
+ 	noc_resp_t	uart_resp;
+	
+  	`AXI_ASSIGN_TO_REQ(uart_req, master[DEV_UART])
+  	`AXI_ASSIGN_FROM_RESP(master[DEV_UART], uart_resp)
+
+	uart #(
+		.clk_freq		(50000000),
+		.AXI_ADDR_WIDTH	(AxiAddrWidth),
+		.AXI_DATA_WIDTH	(AxiDataWidth),
+		.AXI_ID_WIDTH	(AxiIdWidth),
+		.AXI_USER_WIDTH	(AxiUserWidth),
+		.axi_req_t		(noc_req_t),
+		.axi_rsp_t		(noc_resp_t)
+	) i_uart (
+		.clk_i		(clk_i),
+		.rst_ni 	(rst_ni),
+		.axi_req_i	(uart_req),
+		.axi_rsp_o	(uart_resp),
+		.rx_i	(rx_i),
+		.tx_o	(tx_o)
+	);
 endmodule

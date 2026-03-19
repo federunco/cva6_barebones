@@ -24,8 +24,10 @@ module tb_boot;
 	logic rst_ni;
 
 	string mem_hex;
+	int unsigned timeout;
 	int unsigned cycle_count;
 	int unsigned gpr_idx;
+	logic [1:0] uart_tick;
 
 	task automatic dump_core;
 		$display("[SoC TESTBENCH] ===== CORE DUMP @ cycle %0d =====", cycle_count);
@@ -52,6 +54,7 @@ module tb_boot;
 
 	initial begin
 		clk_i = 1'b0;
+		uart_tick <= '0;
 		forever #(CLK_PERIOD/2) clk_i = ~clk_i;
 	end
 
@@ -64,6 +67,10 @@ module tb_boot;
 
 		if (!$value$plusargs("memhex=%s", mem_hex)) begin
 			$fatal(1, "Missing +memhex=<path-to-program.hex>");
+		end
+
+		if (!$value$plusargs("timeout=%d", timeout)) begin
+			$fatal(1, "Missing +timeout=<timeout-in-cycles>");
 		end
 
 		$display("[SoC TESTBENCH] Loading SRAM image from %s", mem_hex);
@@ -79,17 +86,22 @@ module tb_boot;
 			cycle_count <= 0;
 		end else begin
 			cycle_count <= cycle_count + 1;
+			uart_tick <= {uart_tick[0], dut.i_uart.tick};
 
 			if (dut.i_sram.mem[SIG_WORD_IDX] == SIG_VALUE) begin
-				$display("[SoC TESTBENCH] PASS: signature detected at cycle %0d", cycle_count);
+				$display("\n[SoC TESTBENCH] PASS: signature detected at cycle %0d", cycle_count);
 				dump_core();
 				$finish;
 			end
 
-			if (cycle_count > 500000) begin
+			if (cycle_count > timeout) begin
+				$display("\n[SoC TESTBENCH] FAIL: signature was not written, timeout");
 				dump_core();
-				$fatal(1, "[SoC TESTBENCH] FAIL: signature was not written, timeout");
+				$fatal(1);
 			end
+
+			if (dut.i_uart.i_tx.state == uart_pkg::START_BIT && uart_tick[1]) 
+				$write("%c", dut.i_uart.txd);
 		end
 	end
 endmodule

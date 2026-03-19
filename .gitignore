@@ -7,3 +7,4 @@ verif/build
 verif/out
 verif/*.flist
 sw/*/build
+hw/uart/reg
