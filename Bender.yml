@@ -8,9 +8,9 @@ dependencies:
   axi: { git: "https://github.com/pulp-platform/axi.git", version: 0.31.1 }
 
 sources:
-  - hw/include/cva6_barebones_pkg.sv
   - hw/sram.sv
   - hw/vendor/axi2mem.sv
+
   - hw/uart/inc/uart_pkg.sv
   - hw/uart/reg/uart_reg_pkg.sv
   - hw/uart/reg/uart_reg_top.sv
@@ -18,7 +18,10 @@ sources:
   - hw/uart/uart_rx.sv
   - hw/uart/uart_tx.sv
   - hw/uart/uart_top.sv
+
+  - hw/include/cva6_barebones_pkg.sv
   - hw/cva6_barebones.sv
+  
   - target: soc_verilate
     files:
       - verif/tb_boot.sv

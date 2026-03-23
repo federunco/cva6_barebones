@@ -17,7 +17,8 @@
 #include "uart.h"
 
 int main(void) {
-	set_uart_div(5000000); // For simulation speedup, set baudrate to an absurd value
+	// To increase simulation speed, set baudrate to an high value
+	set_uart_div(5000000); 
     printf("Hello, world!");
 	return 0;
 }

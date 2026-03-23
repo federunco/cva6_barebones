@@ -89,15 +89,22 @@ module tb_boot;
 			uart_tick <= {uart_tick[0], dut.i_uart.tick};
 
 			if (dut.i_sram.mem[SIG_WORD_IDX] == SIG_VALUE) begin
-				$display("\n[SoC TESTBENCH] PASS: signature detected at cycle %0d", cycle_count);
+				$display("\n[SoC TESTBENCH] Signature detected at cycle %0d", cycle_count);
 				dump_core();
+				if (dut.i_cva6.issue_stage_i.i_issue_read_operands.gen_asic_regfile.i_ariane_regfile.mem[15] != '0) begin
+					$display("[SoC TESTBENCH] FAIL: main returned a non zero value. Check core dump for more details");
+					$fatal(1, "main returned a non zero value");
+				end
+					
+				$display("\n[SoC TESTBENCH] PASS: main returned 0");
 				$finish;
 			end
 
 			if (cycle_count > timeout) begin
-				$display("\n[SoC TESTBENCH] FAIL: signature was not written, timeout");
+				$display("\n[SoC TESTBENCH] Cycles timeout");
 				dump_core();
-				$fatal(1);
+				$display("[SoC TESTBENCH] FAIL: Signature was not written before simulation timeout");
+				$fatal(1, "signature not written");
 			end
 
 			if (dut.i_uart.i_tx.state == uart_pkg::START_BIT && uart_tick[1]) 

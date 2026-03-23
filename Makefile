@@ -46,7 +46,7 @@ hw/uart/reg:
 	mkdir -p hw/uart/reg
 	python3 $(REGGEN) -r -t ./hw/uart/reg ./hw/uart/uart.hjson 
 
-peripherals: hw/uart/reg
+peripherals: hw/uart/reg	
 
 build-program:
 	@if [ ! -f "$(PROGRAM_MAKEFILE)" ]; then \
