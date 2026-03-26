@@ -32,20 +32,20 @@ wire sel_bit;
 always_ff @(posedge clk_i) begin
 	if (!rst_ni) 
 		state <= IDLE;
-	else if (tick_i) begin
+	else begin
 		case (state)
-			IDLE: if (tx_i) state <= START_BIT;
-			START_BIT: state <= B0;
-			B0: state <= B1;
-			B1: state <= B2;
-			B2: state <= B3;
-			B3: state <= B4;
-			B4: state <= B5;
-			B5: state <= B6;
-			B6: state <= B7;
-			B7: state <= STOP_BIT;
-			STOP_BIT: state <= IDLE;
-			default: state <= IDLE;
+			IDLE:		if (tx_i) state <= START_BIT;
+			START_BIT:	if (tick_i) state <= B0;
+			B0: 		if (tick_i) state <= B1;
+			B1: 		if (tick_i) state <= B2;
+			B2: 		if (tick_i) state <= B3;
+			B3: 		if (tick_i) state <= B4;
+			B4: 		if (tick_i) state <= B5;
+			B5: 		if (tick_i) state <= B6;
+			B6: 		if (tick_i)state <= B7;
+			B7: 		if (tick_i) state <= STOP_BIT;
+			STOP_BIT: 	if (tick_i) state <= IDLE;
+			default: 	if (tick_i) state <= IDLE;
 		endcase
 	end
 end
@@ -53,10 +53,10 @@ end
 assign sel_bit = txd_i[state[2:0]];
 
 always_comb begin
-	if (state == IDLE) tx_o = 1'b1;
-	else if (state == START_BIT) tx_o = 1'b0;
-	else if (state == STOP_BIT) tx_o = 1'b1;
-	else tx_o = sel_bit;
+	if (state == IDLE)				tx_o = 1'b1;
+	else if (state == START_BIT)	tx_o = 1'b0;
+	else if (state == STOP_BIT)		tx_o = 1'b1;
+	else							tx_o = sel_bit;
 end
 assign busy_o = state == IDLE ? 1'b0 : 1'b1;
 

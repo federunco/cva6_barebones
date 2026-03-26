@@ -29,7 +29,7 @@ TIMEOUT ?= 500000
 RI_PATH = $(shell $(BENDER) path register_interface)
 REGGEN = $(RI_PATH)/vendor/lowrisc_opentitan/util/regtool.py
 BROMGEN = $(ROOT_DIR)/utils/gen_bootrom.py
-PYTHON = python3
+PYTHON = python
 
 SIM_OUT_DIR := $(VERIF_DIR)/out/run-$(shell date +%Y-%m-%d)-$(PROGRAM)
 

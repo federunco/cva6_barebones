@@ -18,7 +18,8 @@
 
 int main(void) {
 	// To increase simulation speed, set baudrate to an high value
-	set_uart_div(5000000); 
+	// BAUDRATE = CLK_FREQ / (DIV - 1)
+	set_uart_div(16); 
     printf("Hello, world!");
 	return 0;
 }

@@ -64,8 +64,9 @@ static void print_uart(const char *str)
     }
 }
 
-static void set_uart_div (uint32_t div) {
-	write_reg_u32(UART_BASE_ADDR + UART_DIVIDER_REG_OFFSET, div);
+static void set_uart_div (uint64_t div) {
+    volatile uint64_t *loc_addr = (volatile uint64_t *) (UART_BASE_ADDR + UART_DIVIDER_REG_OFFSET);
+    *loc_addr = div;
 }
 
 #ifndef BOOTROM

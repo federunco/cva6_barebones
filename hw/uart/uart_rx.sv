@@ -36,21 +36,21 @@ uart_state_t state;
 
 // Two flops synchronizer
 always_ff @(posedge clk_i) begin
-	if (!rst_ni) rx_sync <= '1;
-	else rx_sync <= {rx_sync[0], rx_i};
+	if (!rst_ni)	rx_sync <= '1;
+	else			rx_sync <= {rx_sync[0], rx_i};
 end
 
 // Simple filter
 always_ff @(posedge clk_i) begin
 	if (!rst_ni) begin
-		rx_cnt <= '0;
-		rx <= 1'b1;
+		rx_cnt	<= '0;
+		rx		<= 1'b1;
 	end else begin
-		if (rx_sync[1] && rx_cnt != 2'b11) rx_cnt <= rx_cnt + 1;
-		else if (!rx_sync[1] && rx_cnt != 2'b00) rx_cnt <= rx_cnt - 1;
+		if (rx_sync[1] && rx_cnt != 2'b11)			rx_cnt <= rx_cnt + 1;
+		else if (!rx_sync[1] && rx_cnt != 2'b00)	rx_cnt <= rx_cnt - 1;
 
-		if (rx_cnt == 2'b00) rx <= 0;
-		else if (rx_cnt == 2'b11) rx <= 1;
+		if (rx_cnt == 2'b00)		rx <= 0;
+		else if (rx_cnt == 2'b11)	rx <= 1;
 	end
 end
 
@@ -58,25 +58,26 @@ always_ff @(posedge clk_i) begin
 	if (!rst_ni) state <= IDLE;
 	else if (tick_i) begin
 		case (state)
-			IDLE: if (~rx) state <= START_BIT;
-			START_BIT: if (sample) state <= B0;
-			B0: if (sample) state <= B1;
-			B1: if (sample) state <= B2;
-			B2: if (sample) state <= B3;
-			B3: if (sample) state <= B4;
-			B4: if (sample) state <= B5;
-			B5: if (sample) state <= B6;
-			B6: if (sample) state <= B7;
-			B7: if (sample) state <= IDLE;
-			default: state <= IDLE;
+			IDLE: 		if (~rx) state <= START_BIT;
+			START_BIT: 	if (sample) state <= B0;
+			B0: 		if (sample) state <= B1;
+			B1: 		if (sample) state <= B2;
+			B2: 		if (sample) state <= B3;
+			B3: 		if (sample) state <= B4;
+			B4: 		if (sample) state <= B5;
+			B5: 		if (sample) state <= B6;
+			B6: 		if (sample) state <= B7;
+			B7: 		if (sample) state <= STOP_BIT;
+			STOP_BIT: 	if (sample) state <= IDLE;
+			default: 	state <= IDLE;
 		endcase
 	end
 end
 
 always_ff @(posedge clk_i) begin
-	if (!rst_ni) sample_cnt <= '0;
-	else if (state == IDLE) sample_cnt <= '0;
-	else if (tick_i) sample_cnt <= sample_cnt + 1;
+	if (!rst_ni) 			sample_cnt <= '0;
+	else if (state == IDLE)	sample_cnt <= '0;
+	else if (tick_i)		sample_cnt <= sample_cnt + 1;
 end
 assign sample = sample_cnt == 7 ? 1'b1 : 1'b0;
 
@@ -90,8 +91,8 @@ always_ff @(posedge clk_i) begin
 		if (tick_i && sample && state[3]) begin
 			data <= {rx, data[7:1]};
 			if (state == B7) begin
-				valid_o <= 1'b1;
-				rxd_o <= {rx, data[7:1]};
+				valid_o	<= 1'b1;
+				rxd_o	<= {rx, data[7:1]};
 			end
 		end
 	end
