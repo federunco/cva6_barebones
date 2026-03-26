@@ -20,11 +20,12 @@ make run PROGRAM=hello_world TIMEOUT=10000
 Tests results are available on both console output and ```verif/out``` directory.
 Expected output from the simulation is the following:
 ```
-[SoC TESTBENCH] Loading SRAM image from /Users/federunco/cva6_barebones/verif/out/run-2026-03-19-hello_world/program.hex
+[SoC TESTBENCH] Selected boot from RAM
+[SoC TESTBENCH] Loading SRAM image from /Users/federunco/cva6_barebones/verif/out/run-2026-03-26-hello_world/program.hex
 [SoC TESTBENCH] rst_ni released
 Hello, world!
-[SoC TESTBENCH] PASS: signature detected at cycle 5500
-[SoC TESTBENCH] ===== CORE DUMP @ cycle 5500 =====
+[SoC TESTBENCH] Signature detected at cycle 5516
+[SoC TESTBENCH] ===== CORE DUMP @ cycle 5516 =====
 [SoC TESTBENCH] x0  = 0x0000000000000000 x1  = 0x000000008000000c x2  = 0x0000000081200000 x3  = 0x0000000000000000
 [SoC TESTBENCH] x4  = 0x0000000000000000 x5  = 0x0000000080001000 x6  = 0xdeadbeefcafebabe x7  = 0x0000000000000000
 [SoC TESTBENCH] x8  = 0x0000000000000000 x9  = 0x0000000000000000 x10 = 0x0000000000000000 x11 = 0x0000000000000000
@@ -35,6 +36,7 @@ Hello, world!
 [SoC TESTBENCH] x28 = 0xffffffffffff0208 x29 = 0x00000000811ffbc0 x30 = 0x00000000811ffbf0 x31 = 0x0000000000000000
 [SoC TESTBENCH] pc = 0x0000000080000032
 [SoC TESTBENCH] =================================
+[SoC TESTBENCH] PASS: main returned 0
 ```
 
 ## Writing Custom Programs
@@ -47,7 +49,7 @@ Simulations using the UART with realistic baud rates are computationally expensi
 - [x] Testbench and custom program execution
 - [x] AXI UART device + testbench `printf` output over UART
 - [ ] Boot ROM (UART upload)
-- [ ] FPGA synthesis
+- [ ] FPGA synthesis (Xilinx)
 - [ ] Better documentation
 
 ## Licensing

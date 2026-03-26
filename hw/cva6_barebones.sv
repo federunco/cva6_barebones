@@ -175,4 +175,36 @@ module cva6_barebones (
 		.rx_i	(rx_i),
 		.tx_o	(tx_o)
 	);
+
+	// BootROM
+	logic						bootrom_req;
+	logic [AxiAddrWidth-1:0]	bootrom_addr;
+	logic [AxiDataWidth-1:0]	bootrom_data;
+
+	axi2mem #(
+		.AXI_ID_WIDTH	(AxiIdWidthSlave),
+		.AXI_ADDR_WIDTH	(AxiAddrWidth),
+		.AXI_DATA_WIDTH	(AxiDataWidth),
+		.AXI_USER_WIDTH	(AxiUserWidth)
+	) i_brom_axiconv (
+		.clk_i	(clk_i),
+		.rst_ni	(rst_ni),
+		.slave	(master[DEV_BROM]),
+		.req_o	(bootrom_req),
+		//.we_o	(),
+		.addr_o	(bootrom_addr),
+		//.be_o	(),
+		//.user_o	(),
+		//.data_o	(),
+		.user_i	('0),
+		.data_i	(bootrom_data)
+	);
+
+	bootrom i_bootrom (
+		.clk_i		( clk_i			),
+		.req_i		( bootrom_req	),
+		.addr_i		( bootrom_addr	),
+		.data_o		( bootrom_data	)
+	);
+
 endmodule

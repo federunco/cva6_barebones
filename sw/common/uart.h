@@ -15,7 +15,9 @@
 #ifndef _SOC_UART_
 #define _SOC_UART_
 
+#ifndef BOOTROM
 #include <stdint.h>
+#endif
 
 #define UART_BASE_ADDR 0x10000000
 
@@ -66,10 +68,12 @@ static void set_uart_div (uint32_t div) {
 	write_reg_u32(UART_BASE_ADDR + UART_DIVIDER_REG_OFFSET, div);
 }
 
+#ifndef BOOTROM
 #define printf(...) do { \
         char text[1024]; \
         sprintf(text, __VA_ARGS__); \
         print_uart(text); \
 } while (0)
+#endif
 
 #endif

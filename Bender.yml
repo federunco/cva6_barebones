@@ -19,9 +19,11 @@ sources:
   - hw/uart/uart_tx.sv
   - hw/uart/uart_top.sv
 
+  - hw/bootrom.sv
+
   - hw/include/cva6_barebones_pkg.sv
   - hw/cva6_barebones.sv
-  
+
   - target: soc_verilate
     files:
       - verif/tb_boot.sv

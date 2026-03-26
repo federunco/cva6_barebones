@@ -25,6 +25,7 @@ module tb_boot;
 
 	string mem_hex;
 	int unsigned timeout;
+	int unsigned ram_boot;
 	int unsigned cycle_count;
 	int unsigned gpr_idx;
 	logic [1:0] uart_tick;
@@ -44,7 +45,7 @@ module tb_boot;
 			);
 		end
 		$display("[SoC TESTBENCH] pc = 0x%016h", dut.i_cva6.pc_id_ex);
-		$display("[SoC TESTBENCH] =================================");
+		$write("[SoC TESTBENCH] =================================");
 	endtask
 
 	cva6_barebones dut (
@@ -71,6 +72,17 @@ module tb_boot;
 
 		if (!$value$plusargs("timeout=%d", timeout)) begin
 			$fatal(1, "Missing +timeout=<timeout-in-cycles>");
+		end
+
+		if (!$value$plusargs("ramboot=%d", ram_boot)) begin
+			$fatal(1, "Missing +ramboot=<skip-bootrom>");
+		end
+
+		if (ram_boot == 1) begin
+			force dut.i_cva6.boot_addr_i = 64'h8000_0000;
+			$display("[SoC TESTBENCH] Selected boot from RAM");
+		end else begin
+			$display("[SoC TESTBENCH] Selected boot from BootROM");
 		end
 
 		$display("[SoC TESTBENCH] Loading SRAM image from %s", mem_hex);

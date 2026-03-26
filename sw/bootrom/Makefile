@@ -12,7 +12,7 @@
 # License for the specific language governing permissions and limitations 
 # under the License.
 
-BUILD_PREFIX := hello
+BUILD_PREFIX := bootrom
 ROOT_DIR := $(abspath $(CURDIR)/../..)
 BUILD_DIR := ./build
 
@@ -27,13 +27,19 @@ CC := $(TOOLCHAIN_PREFIX)-gcc
 OBJCOPY := $(TOOLCHAIN_PREFIX)-objcopy
 PYTHON := python3
 
-LDSCRIPT := $(ROOT_DIR)/sw/common/link.ld
+LDSCRIPT := link.ld
 BIN_TO_MEMHEX := $(ROOT_DIR)/utils/bin_to_memhex.py
-CRT := $(ROOT_DIR)/sw/common/crt.s
+CRT := crt.s
 
 CFLAGS := \
-	-nostartfiles \
+	-nostdlib \
 	-ffreestanding \
+	-Os \
+	-ffunction-sections \
+	-fdata-sections \
+	-fno-unwind-tables \
+	-fno-asynchronous-unwind-tables \
+	-fno-stack-protector \
 	-I../common \
 	-march=rv64gc \
 	-mabi=lp64 \
@@ -44,7 +50,7 @@ LDFLAGS := \
 	-Wl,--gc-sections \
 	-Wl,--build-id=none
 
-BASE_HEADER := "[SW COMPILE]"
+BASE_HEADER := "[BOOTROM]"
 
 .PHONY: all clean
 
@@ -55,12 +61,13 @@ $(BUILD_DIR):
 
 $(ELF): $(LDSCRIPT) $(CRT) $(SRC) | $(BUILD_DIR)
 	"$(CC)" \
+		-nostartfiles \
 		$(CFLAGS) \
 		"$(CRT)" \
 		"$(SRC)" \
 		$(LDFLAGS) \
 		-o "$@"
-	@echo $(BASE_HEADER) Compiling $@
+	@echo $(BASE_HEADER) Compiling BootROM
 
 $(BIN): $(ELF)
 	"$(OBJCOPY)" -O binary "$<" "$@"
@@ -70,7 +77,7 @@ $(HEX): $(BIN)
 		--input "$<" \
 		--output "$@" \
 		--word-bytes 8
-	@echo $(BASE_HEADER) SRAM memfile generated at $@
+	@echo $(BASE_HEADER) BootROM generated generated at $@
 
 clean:
 	rm -rf "$(BUILD_DIR)"

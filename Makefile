@@ -23,10 +23,13 @@ VERILATOR := verilator
 TARGET_CVA6_ISA := cv64a6_imafdc_sv39
 VERILATED_TB := tb_boot_exe
 PROGRAM ?= not_set
+SKIP_ROM ?= 1
+TRACE ?= 0
 TIMEOUT ?= 500000
 RI_PATH = $(shell $(BENDER) path register_interface)
 REGGEN = $(RI_PATH)/vendor/lowrisc_opentitan/util/regtool.py
-
+BROMGEN = $(ROOT_DIR)/utils/gen_bootrom.py
+PYTHON = python3
 
 SIM_OUT_DIR := $(VERIF_DIR)/out/run-$(shell date +%Y-%m-%d)-$(PROGRAM)
 
@@ -44,9 +47,13 @@ getdeps: Bender.yml
 
 hw/uart/reg:
 	mkdir -p hw/uart/reg
-	python3 $(REGGEN) -r -t ./hw/uart/reg ./hw/uart/uart.hjson 
+	$(PYTHON) $(REGGEN) -r -t ./hw/uart/reg ./hw/uart/uart.hjson 
 
-peripherals: hw/uart/reg	
+hw/bootrom.sv: sw/bootrom/main.c sw/bootrom/crt.s sw/bootrom/link.ld
+	make -C sw/bootrom
+	$(PYTHON) $(BROMGEN) --input sw/bootrom/build/bootrom.hex --output hw/bootrom.sv
+
+peripherals: hw/uart/reg hw/bootrom.sv	
 
 build-program:
 	@if [ ! -f "$(PROGRAM_MAKEFILE)" ]; then \
@@ -77,9 +84,10 @@ verilate: peripherals
 		--threads 4 \
 		-j 4 \
 		--top-module tb_boot \
+		$(if $(filter 1,$(TRACE)),--trace-fst --trace-structs) \
 		-F "$(FLIST)" \
 		-Mdir "$(VERIF_DIR)/build" \
-		-o $(VERILATED_TB)
+		-o $(VERILATED_TB) | tee $(SIM_OUT_DIR)/verilate_log.txt
 
 run: build-program verilate
 	mkdir -p $(SIM_OUT_BASE)
@@ -92,7 +100,7 @@ run: build-program verilate
 	@echo $(BASE_HEADER) Copied $$elf_file in $(SIM_OUT_DIR)/program.elf
 	@echo $(BASE_HEADER) Copied $$hex_file in $(MEMHEX)
 	@echo $(BASE_HEADER) Starting simulation
-	"$(SIM_BIN)" +memhex="$(MEMHEX)" +timeout=$(TIMEOUT) | tee $(SIM_OUT_DIR)/output.txt
+	"$(SIM_BIN)" +memhex="$(MEMHEX)" +timeout=$(TIMEOUT) +ramboot=$(SKIP_ROM) | tee $(SIM_OUT_DIR)/output.txt
 	mv $(ROOT_DIR)/trace_hart_0.dasm $(SIM_OUT_DIR)/trace_hart_0.dasm 
 	@echo $(BASE_HEADER) SoC simulation terminated
 	@echo $(BASE_HEADER) Results transcripts and artifacts available at $(SIM_OUT_DIR)
