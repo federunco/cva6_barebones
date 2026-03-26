@@ -64,6 +64,9 @@ build-program:
 	$(MAKE) -C "$(PROGRAM_DIR)"	
 
 verilate: peripherals
+	mkdir -p $(SIM_OUT_BASE)
+	mkdir -p $(SIM_OUT_DIR)
+
 	@echo $(BASE_HEADER) Compiling the design
 	$(BENDER) script flist-plus -t $(TARGET_CVA6_ISA) -t soc_verilate > tmp.flist
 	# HPDCache does not compile, TODO: investigate, not used by the selected ISA, can be removed from flist
