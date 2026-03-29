@@ -40,7 +40,7 @@ always_ff @ (posedge clk_i) begin
 			cnt		<= cnt + 1;
 		end
 
-		if (cnt8 == {'0, divider_i[w-1:4]}) begin
+		if (cnt8 == {'0, divider_i[w-1:5]}) begin
 			tick8_o	<= 1'b1;
 			cnt8	<= '0;
 		end else begin

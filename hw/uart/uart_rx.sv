@@ -25,12 +25,14 @@ module uart_rx (
 	output	logic[7:0]	rxd_o
 );
 
-logic [1:0] rx_sync, rx_cnt;
-logic [2:0] sample_cnt;
+logic [1:0] rx_sync;
+logic [2:0] rx_cnt;
+logic [3:0] sample_cnt;
 logic [7:0] data;
 
 logic rx;
-logic sample;
+logic sample_start;
+logic sample_data;
 
 uart_state_t state;
 
@@ -46,11 +48,11 @@ always_ff @(posedge clk_i) begin
 		rx_cnt	<= '0;
 		rx		<= 1'b1;
 	end else begin
-		if (rx_sync[1] && rx_cnt != 2'b11)			rx_cnt <= rx_cnt + 1;
-		else if (!rx_sync[1] && rx_cnt != 2'b00)	rx_cnt <= rx_cnt - 1;
+		if (rx_sync[1] && rx_cnt != 3'b111)			rx_cnt <= rx_cnt + 1;
+		else if (!rx_sync[1] && rx_cnt != 3'b000)	rx_cnt <= rx_cnt - 1;
 
-		if (rx_cnt == 2'b00)		rx <= 0;
-		else if (rx_cnt == 2'b11)	rx <= 1;
+		if (rx_cnt == 3'b000)		rx <= 0;
+		else if (rx_cnt == 3'b111)	rx <= 1;
 	end
 end
 
@@ -59,27 +61,36 @@ always_ff @(posedge clk_i) begin
 	else if (tick_i) begin
 		case (state)
 			IDLE: 		if (~rx) state <= START_BIT;
-			START_BIT: 	if (sample) state <= B0;
-			B0: 		if (sample) state <= B1;
-			B1: 		if (sample) state <= B2;
-			B2: 		if (sample) state <= B3;
-			B3: 		if (sample) state <= B4;
-			B4: 		if (sample) state <= B5;
-			B5: 		if (sample) state <= B6;
-			B6: 		if (sample) state <= B7;
-			B7: 		if (sample) state <= STOP_BIT;
-			STOP_BIT: 	if (sample) state <= IDLE;
+			START_BIT: 	if (sample_start) state <= ~rx ? B0 : IDLE;
+			B0: 		if (sample_data) state <= B1;
+			B1: 		if (sample_data) state <= B2;
+			B2: 		if (sample_data) state <= B3;
+			B3: 		if (sample_data) state <= B4;
+			B4: 		if (sample_data) state <= B5;
+			B5: 		if (sample_data) state <= B6;
+			B6: 		if (sample_data) state <= B7;
+			B7: 		if (sample_data) state <= STOP_BIT;
+			STOP_BIT: 	if (sample_data) state <= IDLE;
 			default: 	state <= IDLE;
 		endcase
 	end
 end
 
 always_ff @(posedge clk_i) begin
-	if (!rst_ni) 			sample_cnt <= '0;
-	else if (state == IDLE)	sample_cnt <= '0;
-	else if (tick_i)		sample_cnt <= sample_cnt + 1;
+	if (!rst_ni) sample_cnt <= '0;
+	else if (tick_i) begin
+		if (state == IDLE)	sample_cnt <= '0;
+		else if (state == START_BIT) begin
+			if (sample_start) sample_cnt <= '0;
+			else sample_cnt <= sample_cnt + 1;
+		end else begin
+			if (sample_data) sample_cnt <= '0;
+			else sample_cnt <= sample_cnt + 1;
+		end
+	end
 end
-assign sample = sample_cnt == 7 ? 1'b1 : 1'b0;
+assign sample_start = sample_cnt == 7 ? 1'b1 : 1'b0;
+assign sample_data = sample_cnt == 15 ? 1'b1 : 1'b0;
 
 always_ff @(posedge clk_i) begin
 	if (!rst_ni) begin
@@ -88,7 +99,7 @@ always_ff @(posedge clk_i) begin
 		valid_o <= '0;
 	end else begin
 		valid_o <= 1'b0;
-		if (tick_i && sample && state[3]) begin
+		if (tick_i && sample_data && state[3]) begin
 			data <= {rx, data[7:1]};
 			if (state == B7) begin
 				valid_o	<= 1'b1;
