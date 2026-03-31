@@ -21,6 +21,7 @@ def main():
 	parser.add_argument("--input", required=True, help="Input binary file")
 	parser.add_argument("--output", required=True, help="Output hex file")
 	parser.add_argument("--word-bytes", type=int, default=8, help="Word size in bytes (default: 8)")
+	parser.add_argument("--header", action="store_true", help="Add BootROM specific header")
 	args = parser.parse_args()
 
 	in_path = Path(args.input)
@@ -36,6 +37,10 @@ def main():
 		data += b"\x00" * pad
 
 	with out_path.open("w", encoding="utf-8") as f:
+		if args.header:
+			num_lines = len(data)
+			f.write(f"{num_lines:08x}b007babe\n")
+
 		for idx in range(0, len(data), word_bytes):
 			chunk = data[idx:idx + word_bytes]
 			value = int.from_bytes(chunk, byteorder="little", signed=False)

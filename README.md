@@ -42,13 +42,13 @@ Hello, world!
 ## Writing Custom Programs
 Place your program in the `sw` directory. Use the Hello World example `Makefile` as a reference for how to build it. Then run the `run` target from the top-level `Makefile`, passing your selected program as an argument.
 
-Simulations using the UART with realistic baud rates are computationally expensive. To improve simulation performance, configure the UART divider to a high value (up to CLK_FREQ/8).
+Simulations using the UART with realistic baud rates are computationally expensive. To improve simulation performance, configure the UART divider to a high value (up to CLK_FREQ/16).
 
 ## Roadmap
 - [x] Basic core + SRAM instantiation
 - [x] Testbench and custom program execution
 - [x] AXI UART device + testbench `printf` output over UART
-- [ ] Boot ROM (UART upload)
+- [x] Boot ROM (UART upload)
 - [ ] FPGA synthesis (Xilinx)
 - [ ] Better documentation
 

@@ -26,4 +26,5 @@ sources:
 
   - target: soc_verilate
     files:
+      - verif/sim_uart.sv
       - verif/tb_boot.sv

@@ -21,12 +21,13 @@
 
 #define UART_BASE_ADDR 0x10000000
 
-#define UART_DATA_REG_OFFSET 0x0
-#define UART_CSREG_REG_OFFSET 0x8
-#define UART_DIVIDER_REG_OFFSET 0x10
+#define UART_TX_DATA_REG_OFFSET 0x0
+#define UART_RX_DATA_REG_OFFSET 0x8
+#define UART_CSREG_REG_OFFSET 0x10
+#define UART_DIVIDER_REG_OFFSET 0x18
 #define UART_CSREG_BUSY_BIT 0
 #define UART_CSREG_START_BIT 1
-#define UART_CSREG_VALID_BIT 2
+#define UART_CSREG_EMPTY_BIT 2
 
 static void write_reg_u8(uintptr_t addr, uint8_t value)
 {
@@ -45,13 +46,32 @@ static uint8_t read_reg_u8(uintptr_t addr)
     return *(volatile uint8_t *)addr;
 }
 
+int uart_read(uint8_t *res)
+{
+    if((read_reg_u8(UART_BASE_ADDR + UART_CSREG_REG_OFFSET) >> UART_CSREG_EMPTY_BIT) & 0x1)
+        return 0;
+
+    *res = read_reg_u8(UART_BASE_ADDR + UART_RX_DATA_REG_OFFSET);
+    return 1;
+}
+
 static inline void uart_putchar(char c) {
 	while ((read_reg_u8(UART_BASE_ADDR + UART_CSREG_REG_OFFSET) >> UART_CSREG_BUSY_BIT) & 0x1);
-	write_reg_u8(UART_BASE_ADDR + UART_DATA_REG_OFFSET, (uint8_t) c);
+	write_reg_u8(UART_BASE_ADDR + UART_TX_DATA_REG_OFFSET, (uint8_t) c);
 	write_reg_u8(UART_BASE_ADDR + UART_CSREG_REG_OFFSET, 1 << UART_CSREG_START_BIT);
 	while ( ! ((read_reg_u8(UART_BASE_ADDR + UART_CSREG_REG_OFFSET) >> UART_CSREG_BUSY_BIT) & 0x1 ));
 	write_reg_u8(UART_BASE_ADDR + UART_CSREG_REG_OFFSET, 0 << UART_CSREG_START_BIT);
 	while ((read_reg_u8(UART_BASE_ADDR + UART_CSREG_REG_OFFSET) >> UART_CSREG_BUSY_BIT) & 0x1);
+}
+
+void uart_print_byte(uint8_t byte)
+{
+    uint8_t c[2];
+    uint8_t mapping [16] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
+    c[0] = mapping[byte & 0xf];
+    c[1] = mapping[(byte >> 4) & 0xf];
+    uart_putchar(c[1]);
+    uart_putchar(c[0]);
 }
 
 static void print_uart(const char *str)

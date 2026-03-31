@@ -50,7 +50,7 @@ hw/uart/reg:
 	$(PYTHON) $(REGGEN) -r -t ./hw/uart/reg ./hw/uart/uart.hjson 
 
 hw/bootrom.sv: sw/bootrom/main.c sw/bootrom/crt.s sw/bootrom/link.ld
-	make -C sw/bootrom
+	$(MAKE) -C sw/bootrom
 	$(PYTHON) $(BROMGEN) --input sw/bootrom/build/bootrom.hex --output hw/bootrom.sv
 
 peripherals: hw/uart/reg hw/bootrom.sv	
@@ -61,7 +61,8 @@ build-program:
 		exit 1; \
 	fi
 	@echo $(BASE_HEADER) Building program $(PROGRAM)
-	$(MAKE) -C "$(PROGRAM_DIR)"	
+	$(MAKE) -C "$(PROGRAM_DIR)" clean
+	$(MAKE) -C "$(PROGRAM_DIR)"	SKIP_ROM=$(SKIP_ROM)
 
 verilate: peripherals
 	mkdir -p $(SIM_OUT_BASE)

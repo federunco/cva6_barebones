@@ -24,30 +24,33 @@ module baud_gen #(
 	output	logic			tick8_o
 );
 
-reg [w-1:0] cnt, cnt8;
+	logic [w-1:0]	cnt16;
+    logic [3:0]		cnt_baud;
 
-always_ff @ (posedge clk_i) begin
-	if (!rst_ni) begin
-		cnt		<= '0;
-		tick_o	<= 1'b0;
-		tick8_o	<= 1'b0;
-	end else begin
-		if (cnt == divider_i) begin
-			tick_o	<= 1'b1;
-			cnt		<= '0;
-		end else begin
-			tick_o	<= 1'b0;
-			cnt		<= cnt + 1;
-		end
+	always_ff @ (posedge clk_i) begin
+		if (!rst_ni) begin
+			cnt16    <= '0;
+			cnt_baud <= '0;
+			tick8_o <= 1'b0;
+            tick_o   <= 1'b0;
+        end else begin
+            tick8_o <= 1'b0;
+            tick_o   <= 1'b0;
 
-		if (cnt8 == {'0, divider_i[w-1:5]}) begin
-			tick8_o	<= 1'b1;
-			cnt8	<= '0;
-		end else begin
-			tick8_o	<= 1'b0;
-			cnt8	<= cnt8 + 1;
-		end
-	end
-end
+            if (cnt16 == divider_i) begin
+                cnt16    <= '0;
+                tick8_o <= 1'b1;
+                
+                if (cnt_baud == 4'd15) begin
+                    cnt_baud <= '0;
+                    tick_o   <= 1'b1;
+                end else begin
+                    cnt_baud <= cnt_baud + 1;
+                end
+            end else begin
+                cnt16 <= cnt16 + 1'b1;
+            end
+        end
+    end
 
 endmodule

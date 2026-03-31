@@ -19,6 +19,9 @@ package cva6_barebones_pkg;
 	// Boot address configuration
 	localparam logic [63:0] boot_addr = 64'h0001_0000;
 
+	// Peripheral config
+	localparam int unsigned uart_rx_fifo_depth = 64;
+
 	// AXI Crossbar configuration
 	localparam int unsigned axi_master_cnt = 1; // Number of bus masters on the AXI crossbar
 	localparam int unsigned axi_periph_cnt = 3; // Number of peripherals on the AXI crossbar
@@ -33,7 +36,7 @@ package cva6_barebones_pkg;
 	localparam axi_pkg::xbar_rule_64_t [axi_periph_cnt-1:0] addr_map = '{
 		'{ idx: DEV_SRAM, start_addr: 64'h8000_0000, end_addr: 64'h8000_0000 + 64'h0180_0000 },
 		'{ idx: DEV_UART, start_addr: 64'h1000_0000, end_addr: 64'h1000_0000 + 64'h0000_1000 },
-		'{ idx: DEV_BROM, start_addr: 64'h0001_0000, end_addr: 64'h1000_0000 + 64'h0001_0000 }
+		'{ idx: DEV_BROM, start_addr: 64'h0001_0000, end_addr: 64'h0001_0000 + 64'h0001_0000 }
 	};
 
 	// ---------------------------------------------------

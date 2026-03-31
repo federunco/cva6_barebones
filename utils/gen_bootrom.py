@@ -67,7 +67,7 @@ module bootrom (
 		  
 	localparam int size = {rom_indexes};
 
-    const logic [size-1:0][63:0] data = {{
+    const logic [0:size-1][63:0] data = {{
 {rom_contents}
 	}};
 

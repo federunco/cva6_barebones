@@ -16,6 +16,8 @@ BUILD_PREFIX := hello
 ROOT_DIR := $(abspath $(CURDIR)/../..)
 BUILD_DIR := ./build
 
+SKIP_ROM ?= 0
+
 SRC := main.c
 
 ELF := $(BUILD_DIR)/$(BUILD_PREFIX).elf
@@ -69,7 +71,8 @@ $(HEX): $(BIN)
 	"$(PYTHON)" "$(BIN_TO_MEMHEX)" \
 		--input "$<" \
 		--output "$@" \
-		--word-bytes 8
+		--word-bytes 8 \
+		$(if $(filter 0,$(SKIP_ROM)),--header)
 	@echo $(BASE_HEADER) SRAM memfile generated at $@
 
 clean:

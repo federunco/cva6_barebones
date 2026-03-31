@@ -25,10 +25,17 @@
   regwidth: "64",
   registers: [
     {
-      name: "DATA",
-      desc: "I/O Data register for the UART peripheral",
-      swaccess: "rw",
-      hwaccess: "hrw",
+      name: "TX_DATA",
+      desc: "TX Data register for the UART peripheral",
+      swaccess: "wo",
+      hwaccess: "hro",
+      fields: [ { bits: "7:0" } ]
+    },
+    {
+      name: "RX_DATA",
+      desc: "RX Data register for the UART peripheral",
+      swaccess: "ro",
+      hwaccess: "hwo",
       fields: [ { bits: "7:0" } ]
     },
     {
@@ -49,9 +56,10 @@
         },
         {
           bits: "2",
-          name: "VALID",
-          desc: "RX data valid"
-        }
+          name: "EMPTY",
+          desc: "RX FIFO empty"
+        },
+        
       ]
     },
     {

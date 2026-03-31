@@ -16,14 +16,5 @@
 .globl _start
 
 _start:
-    la t0, __stack_top_ptr
-    ld sp, 0(t0)
+    li sp, 0x81000000
     tail main
-
-1:
-    j 1b
-
-.section .rodata
-.align 3
-__stack_top_ptr:
-    .dword __stack_top

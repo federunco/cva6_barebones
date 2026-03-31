@@ -15,13 +15,62 @@
 #define BOOTROM
 #include <stdint.h>
 #include "uart.h"
+#include "encoding.h"
+
+#define CLK_FREQ		50000000
+#define TIMEOUT			1
+#define UART_DIVIDER	1 //TODO: distinguish between simulation and implementation
+
+int get_incoming_32b (){
+	uint8_t tmp[4];
+	uint32_t res;
+
+	while(!uart_read(&tmp[0]));
+	while(!uart_read(&tmp[1]));
+	while(!uart_read(&tmp[2]));
+	while(!uart_read(&tmp[3]));
+
+	res = tmp[0] | (tmp[1] << 8) | (tmp[2] << 16) | (tmp[3] << 24);
+
+	return res;
+}
 
 void main (){
-	set_uart_div(5000000); //TODO: distinguish between simulation and RTL
-	print_uart("CVA6 SoC First stage bootloader\n");
-	print_uart("Send update cmd in 10 seconds to upload HEX data [TODO IMPL]\n");
-	// TODO: implement update CMD 
-	print_uart("Jumping to boot address\n");
+	uint8_t shamt = 0;
+	uint32_t signature;
+	uint8_t tmp;
+	uint8_t* RAM_BASE = (uint8_t *) 0x80000000UL;
+
+	set_uart_div(UART_DIVIDER); 
+	print_uart("BOOTRDY\n");
+
+    clear_csr(mcountinhibit, 1);
+    write_csr(mcycle, 0);
+
+	while (CLK_FREQ * TIMEOUT > read_csr(mcycle)){
+		if (uart_read(&tmp)) {
+			signature |= ((uint32_t)tmp) << shamt;
+			shamt += 8;
+
+			if (shamt == 32) {
+				shamt = 0;
+				if (signature == 0xB007BABE) 
+					break;
+			}
+		}
+	}
+
+	if (signature == 0xB007BABE) {
+		uint32_t size = get_incoming_32b();
+		print_uart("UPLDRDY");
+		for (uint32_t i = 0; i < size; i++){
+			while(!uart_read(&tmp));
+			*RAM_BASE = tmp;
+			RAM_BASE++;
+		}
+	}
+
+	print_uart("JMP\n");
 	__asm__ volatile(
         "li t0, 0x80000000;"
         "jr t0"

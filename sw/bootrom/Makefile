@@ -36,14 +36,13 @@ CFLAGS := \
 	-ffreestanding \
 	-Os \
 	-ffunction-sections \
-	-fdata-sections \
 	-fno-unwind-tables \
 	-fno-asynchronous-unwind-tables \
 	-fno-stack-protector \
 	-I../common \
 	-march=rv64gc \
 	-mabi=lp64 \
-	-mcmodel=medany
+	-mcmodel=medlow
 
 LDFLAGS := \
 	-T "$(LDSCRIPT)" \

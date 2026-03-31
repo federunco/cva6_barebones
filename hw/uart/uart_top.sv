@@ -33,11 +33,12 @@ module uart #(
 );
 
 	logic tick, tick8;
-	logic [7:0] rxd;
+	logic [7:0] rxd, fifo_data;
 	logic [7:0] txd;
 	logic [$clog2(clk_freq-1)-1:0] divider;
 
-	logic valid, busy, start;
+	logic valid, busy, start, empty, data_rd;
+	logic fifo_push, fifo_pop, fifo_full;
 
 	// UART hardware 
 	baud_gen #(clk_freq) i_baudgen (
@@ -65,6 +66,31 @@ module uart #(
 		.rx_i		(rx_i),
 		.valid_o	(valid),
 		.rxd_o		(rxd)
+	);
+
+	assign data_rd = 
+		reg_req_i.valid && 
+		~reg_req_i.write && 
+		(reg_req_i.addr[uart_reg_pkg::BlockAw-1:0] == uart_reg_pkg::UART_RX_DATA_OFFSET);
+
+	assign fifo_pop = data_rd && !empty;
+	assign fifo_push = valid && !fifo_full;
+
+	fifo_v3 #(
+		.FALL_THROUGH(1'b1),
+		.DATA_WIDTH(8),
+		.DEPTH(cva6_barebones_pkg::uart_rx_fifo_depth)
+	) i_rxfifo (
+		.clk_i		(clk_i),
+		.rst_ni		(rst_ni),
+		.flush_i 	(1'b0),
+		.testmode_i	(1'b0),
+		.full_o 	(fifo_full),
+		.empty_o	(empty),
+		.data_i		(rxd),
+		.push_i		(fifo_push),
+		.data_o		(fifo_data),
+		.pop_i		(fifo_pop)
 	);
 
 	// UART interface
@@ -113,13 +139,14 @@ module uart #(
 		.devmode_i	(1'b0)
 	);
 
-	assign txd 		= reg2hw.data.q;
+	assign txd 		= reg2hw.tx_data.q;
 	assign start 	= reg2hw.csreg.start.q;
 	assign divider 	= reg2hw.divider.q[$size(divider)-1:0];
 		
-	assign hw2reg.data.d 			= rxd;
-	assign hw2reg.csreg.valid.d 	= valid;
+	assign hw2reg.rx_data.d 		= fifo_data;
+	assign hw2reg.csreg.empty.d 	= empty;
 	assign hw2reg.csreg.busy.d 		= busy;
-	assign hw2reg.csreg.valid.de 	= 1'b1;
+	assign hw2reg.rx_data.de 		= 1'b1;
+	assign hw2reg.csreg.empty.de 	= 1'b1;
 	assign hw2reg.csreg.busy.de 	= 1'b1;
 endmodule

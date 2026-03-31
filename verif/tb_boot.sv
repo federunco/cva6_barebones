@@ -22,13 +22,15 @@ module tb_boot;
 
 	logic clk_i;
 	logic rst_ni;
+	logic clk_uart, rst_ni_uart;
 
 	string mem_hex;
 	int unsigned timeout;
 	int unsigned ram_boot;
 	int unsigned cycle_count;
 	int unsigned gpr_idx;
-	logic [1:0] uart_tick;
+	logic tx_start_q;
+	logic uart_boot_en;
 
 	task automatic dump_core;
 		$display("[SoC TESTBENCH] ===== CORE DUMP @ cycle %0d =====", cycle_count);
@@ -45,22 +47,38 @@ module tb_boot;
 			);
 		end
 		$display("[SoC TESTBENCH] pc = 0x%016h", dut.i_cva6.pc_id_ex);
-		$write("[SoC TESTBENCH] =================================");
+		$write("[SoC TESTBENCH] =================================\n");
 	endtask
 
+	logic tx;
 	cva6_barebones dut (
 		.clk_i (clk_i),
-		.rst_ni (rst_ni)
+		.rst_ni (rst_ni),
+		.rx_i (tx)
+	);
+
+	sim_uart #(
+		.divider(1)
+	) i_romtx (
+		.clk_i (clk_uart),
+		.rst_ni(rst_ni_uart),
+		.boot_en(uart_boot_en),
+		.tx_o (tx)
 	);
 
 	initial begin
 		clk_i = 1'b0;
-		uart_tick <= '0;
-		forever #(CLK_PERIOD/2) clk_i = ~clk_i;
+		tx_start_q <= 1'b0;
+		clk_uart = 1'b0;
+        fork
+        	forever #(CLK_PERIOD/2)		clk_i = ~clk_i;
+			#3 forever #(CLK_PERIOD/2)	clk_uart = ~clk_uart;
+		join
 	end
 
 	initial begin
 		rst_ni = 1'b0;
+		rst_ni_uart = 1'b0;
 		cycle_count = 0;
 
 		$dumpfile("tb_boot.vcd");
@@ -79,26 +97,32 @@ module tb_boot;
 		end
 
 		if (ram_boot == 1) begin
-			force dut.i_cva6.boot_addr_i = 64'h8000_0000;
 			$display("[SoC TESTBENCH] Selected boot from RAM");
+			$display("[SoC TESTBENCH] Loading SRAM image from %s", mem_hex);
+			force dut.i_cva6.boot_addr_i = 64'h8000_0000;
+			$readmemh(mem_hex, dut.i_sram.mem);
+			uart_boot_en = 1'b0;
 		end else begin
 			$display("[SoC TESTBENCH] Selected boot from BootROM");
+			uart_boot_en = 1'b1;
 		end
-
-		$display("[SoC TESTBENCH] Loading SRAM image from %s", mem_hex);
-		$readmemh(mem_hex, dut.i_sram.mem);
 
 		repeat (10) @(posedge clk_i);
 		rst_ni = 1'b1;
 		$display("[SoC TESTBENCH] rst_ni released");
+		
+		wait (dut.i_uart.divider != 0);
+		repeat (4) @(posedge clk_i);
+		rst_ni_uart = 1'b1;
 	end
 
 	always @(posedge clk_i) begin
 		if (!rst_ni) begin
 			cycle_count <= 0;
+			tx_start_q <= 1'b0;
 		end else begin
 			cycle_count <= cycle_count + 1;
-			uart_tick <= {uart_tick[0], dut.i_uart.tick};
+			tx_start_q <= dut.i_uart.start;
 
 			if (dut.i_sram.mem[SIG_WORD_IDX] == SIG_VALUE) begin
 				$display("\n[SoC TESTBENCH] Signature detected at cycle %0d", cycle_count);
@@ -119,7 +143,7 @@ module tb_boot;
 				$fatal(1, "signature not written");
 			end
 
-			if (dut.i_uart.i_tx.state == uart_pkg::START_BIT && uart_tick[1]) 
+			if (dut.i_uart.start && !tx_start_q)
 				$write("%c", dut.i_uart.txd);
 		end
 	end
