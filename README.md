@@ -21,11 +21,11 @@ Tests results are available on both console output and ```verif/out``` directory
 Expected output from the simulation is the following:
 ```
 [SoC TESTBENCH] Selected boot from RAM
-[SoC TESTBENCH] Loading SRAM image from /Users/federunco/cva6_barebones/verif/out/run-2026-03-26-hello_world/program.hex
+[SoC TESTBENCH] Loading SRAM image from /Users/federunco/cva6_barebones/verif/out/run-2026-03-31-hello_world/program.hex
 [SoC TESTBENCH] rst_ni released
 Hello, world!
-[SoC TESTBENCH] Signature detected at cycle 5516
-[SoC TESTBENCH] ===== CORE DUMP @ cycle 5516 =====
+[SoC TESTBENCH] Signature detected at cycle 7647
+[SoC TESTBENCH] ===== CORE DUMP @ cycle 7647 =====
 [SoC TESTBENCH] x0  = 0x0000000000000000 x1  = 0x000000008000000c x2  = 0x0000000081200000 x3  = 0x0000000000000000
 [SoC TESTBENCH] x4  = 0x0000000000000000 x5  = 0x0000000080001000 x6  = 0xdeadbeefcafebabe x7  = 0x0000000000000000
 [SoC TESTBENCH] x8  = 0x0000000000000000 x9  = 0x0000000000000000 x10 = 0x0000000000000000 x11 = 0x0000000000000000

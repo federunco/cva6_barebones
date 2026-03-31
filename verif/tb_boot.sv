@@ -132,7 +132,7 @@ module tb_boot;
 					$fatal(1, "main returned a non zero value");
 				end
 					
-				$display("\n[SoC TESTBENCH] PASS: main returned 0");
+				$display("[SoC TESTBENCH] PASS: main returned 0");
 				$finish;
 			end
 
