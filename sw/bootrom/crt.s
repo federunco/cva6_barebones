@@ -16,5 +16,5 @@
 .globl _start
 
 _start:
-    li sp, 0x81000000
+    li sp, 0x80010000
     tail main

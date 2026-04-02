@@ -37,7 +37,7 @@ CFLAGS := \
 	-nostartfiles \
 	-ffreestanding \
 	-I../common \
-	-march=rv64gc \
+	-march=rv64imac_zicsr_zifencei \
 	-mabi=lp64 \
 	-mcmodel=medany
 

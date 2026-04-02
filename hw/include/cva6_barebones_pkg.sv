@@ -19,9 +19,12 @@ package cva6_barebones_pkg;
 	// Boot address configuration
 	localparam logic [63:0] boot_addr = 64'h0001_0000;
 
-	// Peripheral config
-	localparam int unsigned uart_rx_fifo_depth = 64;
+	// SRAM Configurations
+	localparam int unsigned sram_size = 64 * 1024; // By default 64 KB instantiated
 
+	// Peripherals config
+	localparam int unsigned uart_rx_fifo_depth = 64;
+	
 	// AXI Crossbar configuration
 	localparam int unsigned axi_master_cnt = 1; // Number of bus masters on the AXI crossbar
 	localparam int unsigned axi_periph_cnt = 3; // Number of peripherals on the AXI crossbar
@@ -44,7 +47,7 @@ package cva6_barebones_pkg;
 	// ---------------------------------------------------	
 
 	// CVA6 Configuration 
-	localparam config_pkg::cva6_cfg_t CVA6Cfg = build_config_pkg::build_config(cva6_config_pkg::cva6_cfg);
+	localparam config_pkg::cva6_cfg_t CVA6Cfg = build_config_pkg::build_config(core_config_pkg::cva6_cfg);
 
 	// CVXIF Types
 	typedef `READREGFLAGS_T(CVA6Cfg)															readregflags_t;
@@ -62,11 +65,11 @@ package cva6_barebones_pkg;
    	typedef `CVXIF_RESP_T(CVA6Cfg, x_compressed_resp_t, x_issue_resp_t, x_result_t) 			cvxif_resp_t;
 
 	// AXI Types
-	localparam int unsigned AxiAddrWidth 		= cva6_config_pkg::CVA6ConfigAxiAddrWidth;
-	localparam int unsigned AxiDataWidth 		= cva6_config_pkg::CVA6ConfigAxiDataWidth;
-	localparam int unsigned AxiIdWidth   		= cva6_config_pkg::CVA6ConfigAxiIdWidth;
-	localparam int unsigned AxiIdWidthSlave		= cva6_config_pkg::CVA6ConfigAxiIdWidth + $clog2(axi_master_cnt);
-	localparam int unsigned AxiUserWidth 		= cva6_config_pkg::CVA6ConfigDataUserWidth;
+	localparam int unsigned AxiAddrWidth 		= core_config_pkg::CVA6ConfigAxiAddrWidth;
+	localparam int unsigned AxiDataWidth 		= core_config_pkg::CVA6ConfigAxiDataWidth;
+	localparam int unsigned AxiIdWidth   		= core_config_pkg::CVA6ConfigAxiIdWidth;
+	localparam int unsigned AxiIdWidthSlave		= core_config_pkg::CVA6ConfigAxiIdWidth + $clog2(axi_master_cnt);
+	localparam int unsigned AxiUserWidth 		= core_config_pkg::CVA6ConfigDataUserWidth;
 
 	typedef logic [AxiAddrWidth-1:0]	axi_addr_t;
 	typedef logic [AxiIdWidth-1:0]		axi_id_t;

@@ -137,7 +137,7 @@ module cva6_barebones (
 	bb_sram #(
 		.ADDR_WIDTH	(AxiAddrWidth),
 		.DATA_WIDTH	(AxiDataWidth),
-		.SIZE_BYTES	(18 * 1024 * 1024) // TODO: make it configurable in package
+		.SIZE_BYTES	(sram_size)
 	) i_sram (
 		.clk_i			(clk_i),
 		.rst_ni			(rst_ni),

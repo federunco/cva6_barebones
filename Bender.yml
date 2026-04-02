@@ -21,6 +21,7 @@ sources:
 
   - hw/bootrom.sv
 
+  - hw/include/core_config_pkg.sv
   - hw/include/cva6_barebones_pkg.sv
   - hw/cva6_barebones.sv
 
