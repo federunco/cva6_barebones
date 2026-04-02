@@ -50,10 +50,15 @@ hw/uart/reg:
 	$(PYTHON) $(REGGEN) -r -t ./hw/uart/reg ./hw/uart/uart.hjson 
 
 hw/bootrom.sv: sw/bootrom/main.c sw/bootrom/crt.s sw/bootrom/link.ld
-	$(MAKE) -C sw/bootrom
-	$(PYTHON) $(BROMGEN) --input sw/bootrom/build/bootrom.hex --output hw/bootrom.sv
+	$(eval include fpga/targets.mk)
+	$(MAKE) -C sw/bootrom TARGET=synth CLK_FREQ=$(FPGA_CLK_FREQ) BAUDRATE=$(FPGA_BAUDRATE) 
+	$(PYTHON) $(BROMGEN) --input sw/bootrom/build_synth/bootrom.hex --output hw/bootrom.sv
 
-peripherals: hw/uart/reg hw/bootrom.sv	
+verif/sim_bootrom.sv: sw/bootrom/main.c sw/bootrom/crt.s sw/bootrom/link.ld
+	$(MAKE) -C sw/bootrom TARGET=sim
+	$(PYTHON) $(BROMGEN) --input sw/bootrom/build_sim/bootrom.hex --output verif/sim_bootrom.sv
+
+peripherals: hw/uart/reg
 
 build-program:
 	@if [ ! -f "$(PROGRAM_MAKEFILE)" ]; then \
@@ -64,7 +69,7 @@ build-program:
 	$(MAKE) -C "$(PROGRAM_DIR)" clean
 	$(MAKE) -C "$(PROGRAM_DIR)"	SKIP_ROM=$(SKIP_ROM)
 
-verilate: peripherals
+verilate: peripherals verif/sim_bootrom.sv
 	mkdir -p $(SIM_OUT_BASE)
 	mkdir -p $(SIM_OUT_DIR)
 
@@ -109,14 +114,23 @@ run: build-program verilate
 	@echo $(BASE_HEADER) SoC simulation terminated
 	@echo $(BASE_HEADER) Results transcripts and artifacts available at $(SIM_OUT_DIR)
 
+fpga: peripherals hw/bootrom.sv
+	$(eval include fpga/targets.mk)
+	@echo $(BASE_HEADER) Starting FPGA synthesis for board $(BOARD)
+	$(MAKE) -C fpga bitstream XDC=$(FPGA_XDCFNAME)
+	@echo $(BASE_HEADER) Synthesis terminated for board $(BOARD), check fpga/out directory for bitstream and reports
+
 clean:
 	@for dir in "$(SW_DIR)"/*; do \
 		if [ -d "$$dir" ] && [ -f "$$dir/Makefile" ]; then \
 			$(MAKE) -C "$$dir" clean; \
 		fi; \
 	done
+	$(MAKE) -C fpga clean SKIP_XDC=1
 	rm -rf "$(SIM_OUT_BASE)"
 	rm -rf "$(VERIF_DIR)/build"
 	rm -f "$(FLIST_RAW)" "$(FLIST)"
 	rm -rf hw/uart/reg
+	rm -rf hw/bootrom.sv
+	rm -rf verif/sim_bootrom.sv
 

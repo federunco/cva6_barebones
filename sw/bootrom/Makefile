@@ -13,8 +13,17 @@
 # under the License.
 
 BUILD_PREFIX := bootrom
+TARGET ?= sim
+ifeq ($(TARGET),synth)
+ifndef CLK_FREQ
+$(error CLK_FREQ is not set. Please provide CLK_FREQ when calling make)
+endif
+ifndef BAUDRATE
+$(error BAUDRATE is not set. Please provide BAUDRATE when calling make)
+endif
+endif
 ROOT_DIR := $(abspath $(CURDIR)/../..)
-BUILD_DIR := ./build
+BUILD_DIR := ./build_$(TARGET)
 
 SRC := main.c
 
@@ -42,7 +51,8 @@ CFLAGS := \
 	-I../common \
 	-march=rv64imac_zicsr_zifencei \
 	-mabi=lp64 \
-	-mcmodel=medlow
+	-mcmodel=medlow \
+	$(if $(filter synth,$(TARGET)),-DSYNTHESIS -DCLK_FREQ=$(CLK_FREQ) -DBAUDRATE=$(BAUDRATE))
 
 LDFLAGS := \
 	-T "$(LDSCRIPT)" \
@@ -58,7 +68,7 @@ all: $(HEX)
 $(BUILD_DIR):
 	mkdir -p "$@"
 
-$(ELF): $(LDSCRIPT) $(CRT) $(SRC) | $(BUILD_DIR)
+$(ELF): $(LDSCRIPT) $(CRT) $(SRC) | $(BUILD_DIR)	
 	"$(CC)" \
 		-nostartfiles \
 		$(CFLAGS) \
@@ -79,4 +89,4 @@ $(HEX): $(BIN)
 	@echo $(BASE_HEADER) BootROM generated generated at $@
 
 clean:
-	rm -rf "$(BUILD_DIR)"
+	rm -rf ./build*

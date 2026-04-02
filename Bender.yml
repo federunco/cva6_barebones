@@ -19,7 +19,12 @@ sources:
   - hw/uart/uart_tx.sv
   - hw/uart/uart_top.sv
 
-  - hw/bootrom.sv
+  - target: synthesis
+    files:
+      - hw/bootrom.sv
+  - target: soc_verilate
+    files:
+      - verif/sim_bootrom.sv
 
   - hw/include/core_config_pkg.sv
   - hw/include/cva6_barebones_pkg.sv

@@ -17,9 +17,16 @@
 #include "uart.h"
 #include "encoding.h"
 
-#define CLK_FREQ		50000000
+// Timeout in seconds for program upload
 #define TIMEOUT			1
-#define UART_DIVIDER	1 //TODO: distinguish between simulation and implementation
+
+#ifdef	SYNTHESIS
+#define UART_DIVIDER	(CLK_FREQ / 16 / BAUDRATE) - 1 
+#else
+// Smaller values to allow a fast simulation of BootROM
+#define UART_DIVIDER	1
+#define CLK_FREQ		10000
+#endif
 
 int get_incoming_32b (){
 	uint8_t tmp[4];
@@ -36,10 +43,10 @@ int get_incoming_32b (){
 }
 
 void main (){
-	uint8_t shamt = 0;
-	uint32_t signature;
-	uint8_t tmp;
-	uint8_t* RAM_BASE = (uint8_t *) 0x80000000UL;
+	uint8_t		shamt = 0;
+	uint32_t	signature = 0;
+	uint8_t		tmp;
+	uint8_t*	RAM_BASE = (uint8_t *) 0x80000000UL;
 
 	set_uart_div(UART_DIVIDER); 
 	print_uart("BOOTRDY\n");
@@ -54,8 +61,7 @@ void main (){
 
 			if (shamt == 32) {
 				shamt = 0;
-				if (signature == 0xB007BABE) 
-					break;
+				if (signature == 0xB007BABE) break;
 			}
 		}
 	}

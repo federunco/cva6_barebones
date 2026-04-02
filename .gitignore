@@ -6,6 +6,14 @@ Bender.lock
 verif/build
 verif/out
 verif/*.flist
-sw/*/build
+verif/sim_bootrom.sv
+sw/*/build*
 hw/uart/reg
 hw/bootrom.sv
+*.jou
+*.log
+fpga/build
+fpga/out
+fpga/scripts/import_sources.tcl
+fpga/.Xil
+fpga/*.rpt

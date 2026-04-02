@@ -2,7 +2,7 @@
 A simple hobby project to teach myself how to build a working SoC based on the CVA6 core.
 
 ## Dependencies
-- Python 3 with hjson, mako and tabulate dependencies
+- Python 3 with hjson, mako, tabulate and pyserial dependencies
 - Bender
 - RISC-V toolchain
 - Verilator
@@ -17,7 +17,7 @@ To run the Hello World test:
 ```
 make run PROGRAM=hello_world TIMEOUT=10000
 ```
-Tests results are available on both console output and ```verif/out``` directory.
+Tests results are available on both console output and `verif/out` directory.
 Expected output from the simulation is the following:
 ```
 [SoC TESTBENCH] Selected boot from RAM
@@ -44,21 +44,67 @@ Place your program in the `sw` directory. Use the Hello World example `Makefile`
 
 Simulations using the UART with realistic baud rates are computationally expensive. To improve simulation performance, configure the UART divider to a high value (up to CLK_FREQ/16).
 
+## FPGA Synthesis
+To synthesize the SoC, run:
+
+```bash
+make fpga BOARD=zynq7020db
+```
+
+This command generates a valid bitstream and build artifacts under `fpga/out/run-YYYY-MM-DD` for a generic Zynq-7020 development board.  
+Currently, only Vivado is supported.
+
+To add support for a new board:
+
+1. Add a new board entry in `fpga/targets.mk`.
+2. Define the target clock frequency, UART baud rate, and XDC constraints filename.
+3. Add the corresponding XDC file to `fpga/constraints`.
+
+Use the existing target as the reference implementation.
+
+## Uploading a Program
+
+Compile your program first, and verify that the generated HEX file includes the `B007BABE` signature on the first line. Then upload it with `upload.py`:
+
+```bash
+python utils/upload.py --hex sw/hello_world/build/hello.hex --port /dev/cu.usbserial-1310
+```
+
+The script waits for the Boot ROM, uploads the HEX image, and then streams the program output. 
+
+Expected output is similar to the following:
+```
+Waiting for BootROM (rst core to trigger)...
+Sending handshake...
+Waiting for response...
+Upload started...
+Upload complete, 360 bytes sent.
+Waiting for core to jump to RAM...
+Program output:
+----------------------------------------
+
+Hello, world!
+
+----------------------------------------
+```
 ## Roadmap
-- [x] Basic core + SRAM instantiation
+- [x] Basic core + SRAM integration
 - [x] Testbench and custom program execution
 - [x] AXI UART device + testbench `printf` output over UART
 - [x] Boot ROM (UART upload)
-- [ ] FPGA synthesis (Xilinx)
+- [x] FPGA synthesis (Xilinx)
 - [ ] Better documentation
 
-## Licensing
+# Licensing
+Copyright 2026 (c) Federico Runco
+
 The SoC is released under the Solderpad Hardware License version 2.1, which is a permissive license based on Apache 2.0. Please refer to the Solderpad license file for more information.
 
-The OpenHW Group CVA6 core, vendored through Bender, is released under the Solderpad Hardware License version 0.51. Please refer to the original repository for more information.
-
-The PULP Platform AXI modules, vendored through Bender, are released under the Solderpad Hardware License version 0.51. Please refer to the original repository for more information.
-
-The PULP Platform register_interface, vendored through Bender, is released under the Solderpad Hardware License version 0.51. Please refer to the original repository for more information.
-
-The PULP Platform `axi2mem` unit, vendored in `hw/vendor/axi2mem.sv`, is released under the Solderpad Hardware License version 0.51. Please refer to the original repository for more information.
+## Dependencies
+The table below summarizes the main third-party dependencies and their corresponding licenses.
+| Dependency | Version | License | 
+|-|-|-|
+| [cva6](https://github.com/openhwgroup/cva6) | upstream | SPHL v0.51 
+| [axi](https://github.com/pulp-platform/axi) | 0.31.1 | SPHL v0.51 
+| [register_interface](https://github.com/pulp-platform/register_interface) | 0.4.1 | SPHL v0.51 
+| [axi2mem](https://github.com/pulp-platform/axi2mem/blob/master/axi2mem.sv) | upstream | SPHL v0.51 
