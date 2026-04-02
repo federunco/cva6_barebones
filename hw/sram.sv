@@ -39,7 +39,7 @@ module bb_sram #(
 		word_idx = mem_addr_i[ADDR_LSB + IDX_WIDTH - 1 : ADDR_LSB];
 	end
 
-	always_ff @(posedge clk_i or negedge rst_ni) begin
+	always_ff @(posedge clk_i) begin
 		if (!rst_ni) begin
 			mem_rvalid_o <= 1'b0;
 			mem_rdata_o  <= '0;
