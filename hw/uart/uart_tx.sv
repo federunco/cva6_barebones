@@ -34,7 +34,8 @@ always_ff @(posedge clk_i) begin
 		state <= IDLE;
 	else begin
 		case (state)
-			IDLE:		if (tx_i) state <= START_BIT;
+			IDLE:		if (tx_i) state <= WAIT_TICK;
+			WAIT_TICK:	if (tick_i) state <= START_BIT;
 			START_BIT:	if (tick_i) state <= B0;
 			B0: 		if (tick_i) state <= B1;
 			B1: 		if (tick_i) state <= B2;
@@ -42,7 +43,7 @@ always_ff @(posedge clk_i) begin
 			B3: 		if (tick_i) state <= B4;
 			B4: 		if (tick_i) state <= B5;
 			B5: 		if (tick_i) state <= B6;
-			B6: 		if (tick_i)state <= B7;
+			B6: 		if (tick_i)	state <= B7;
 			B7: 		if (tick_i) state <= STOP_BIT;
 			STOP_BIT: 	if (tick_i) state <= IDLE;
 			default: 	if (tick_i) state <= IDLE;
@@ -54,6 +55,7 @@ assign sel_bit = txd_i[state[2:0]];
 
 always_comb begin
 	if (state == IDLE)				tx_o = 1'b1;
+	else if (state == WAIT_TICK)	tx_o = 1'b1;
 	else if (state == START_BIT)	tx_o = 1'b0;
 	else if (state == STOP_BIT)		tx_o = 1'b1;
 	else							tx_o = sel_bit;

@@ -16,6 +16,7 @@ package uart_pkg;
 
 	typedef enum logic[3:0] {
 		IDLE 		= 4'b0000,
+		WAIT_TICK	= 4'b0011,
 		START_BIT 	= 4'b0001,
 		B0 			= 4'b1000,
 		B1 			= 4'b1001,
