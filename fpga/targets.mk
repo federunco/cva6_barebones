@@ -17,6 +17,7 @@ ifeq ($(BOARD),zynq7020db)
 FPGA_CLK_FREQ := 50000000
 FPGA_BAUDRATE := 115200
 FPGA_XDCFNAME := zynq7020db.xdc
+FPGA_PARTNAME := xc7z020clg484-2
 else
 $(error Unsupported board $(BOARD))
 endif

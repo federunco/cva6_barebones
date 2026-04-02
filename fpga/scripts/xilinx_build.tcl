@@ -12,17 +12,19 @@
 # License for the specific language governing permissions and limitations 
 # under the License.
 
-if { $argc != 1 } {
-	puts "Synthesis scripts requires XDC filename"
+if { $argc != 2 } {
+	puts "Synthesis scripts requires XDC filename and part identifier"
 	exit
 }
 
-create_project -force cva6_barebones ./build -part xc7z020clg484-2
+set xdc_file [lindex $argv 0]
+set part_name [lindex $argv 1]
+
+create_project -force cva6_barebones ./build -part $part_name
 
 source scripts/import_sources.tcl
 set_property top cva6_barebones [current_fileset]
 
-set xdc_file [lindex $argv 0]
 read_xdc "./constraints/$xdc_file"
 
 launch_runs synth_1

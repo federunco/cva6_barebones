@@ -25,6 +25,10 @@ ifeq ($(SKIP_XDC),0)
 ifndef XDC
 $(error XDC is not set. Please provide XDC when calling make)
 endif
+ifndef PART_NAME
+$(error PART_NAME is not set. Please provide PART_NAME when calling make)
+endif
+
 endif
 
 .PHONY: bitstream
@@ -32,7 +36,7 @@ endif
 bitstream: scripts/import_sources.tcl
 	rm -rf build
 	mkdir -p $(SYNTH_OUT_DIR)
-	$(VIVADO) -mode batch -source scripts/xilinx_build.tcl -tclargs "$(XDC)"
+	$(VIVADO) -mode batch -source scripts/xilinx_build.tcl -tclargs "$(XDC) $(PART_NAME)"
 	mv syn_timing.rpt $(SYNTH_OUT_DIR)/syn_timing.rpt 
 	mv syn_power.rpt $(SYNTH_OUT_DIR)/syn_power.rpt 
 	mv syn_utilization.rpt $(SYNTH_OUT_DIR)/syn_utilization.rpt 

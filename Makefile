@@ -79,9 +79,6 @@ verilate: peripherals verif/sim_bootrom.sv
 	grep -v "hpdcache" tmp.flist > "$(FLIST)"
 	rm tmp.flist
 
-	# --trace-fst
-	# --trace-structs 
-
 	$(VERILATOR) \
 		--sv \
 		--timing \
@@ -117,7 +114,7 @@ run: build-program verilate
 fpga: peripherals hw/bootrom.sv
 	$(eval include fpga/targets.mk)
 	@echo $(BASE_HEADER) Starting FPGA synthesis for board $(BOARD)
-	$(MAKE) -C fpga bitstream XDC=$(FPGA_XDCFNAME)
+	$(MAKE) -C fpga bitstream XDC=$(FPGA_XDCFNAME) PART_NAME=$(FPGA_PARTNAME)
 	@echo $(BASE_HEADER) Synthesis terminated for board $(BOARD), check fpga/out directory for bitstream and reports
 
 clean:
