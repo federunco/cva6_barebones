@@ -46,7 +46,7 @@ module tb_boot;
 				dut.i_cva6.issue_stage_i.i_issue_read_operands.gen_asic_regfile.i_ariane_regfile.mem[gpr_idx + 3]
 			);
 		end
-		$display("[SoC TESTBENCH] pc = 0x%016h", dut.i_cva6.pc_id_ex);
+		$display("[SoC TESTBENCH] commit pc = 0x%016h", dut.i_cva6.pc_commit);
 		$write("[SoC TESTBENCH] =================================\n");
 	endtask
 
@@ -127,13 +127,38 @@ module tb_boot;
 			if (dut.i_sram.mem[SIG_WORD_IDX] == SIG_VALUE) begin
 				$display("\n[SoC TESTBENCH] Signature detected at cycle %0d", cycle_count);
 				dump_core();
-				if (dut.i_cva6.issue_stage_i.i_issue_read_operands.gen_asic_regfile.i_ariane_regfile.mem[15] != '0) begin
+				if (dut.i_cva6.issue_stage_i.i_issue_read_operands.gen_asic_regfile.i_ariane_regfile.mem[10] != '0) begin
 					$display("[SoC TESTBENCH] FAIL: main returned a non zero value. Check core dump for more details");
 					$fatal(1, "main returned a non zero value");
 				end
 					
 				$display("[SoC TESTBENCH] PASS: main returned 0");
 				$finish;
+			end
+
+			if (dut.i_cva6.csr_regfile_i.mcause_q != '0) begin
+				case (dut.i_cva6.csr_regfile_i.mcause_q[3:0])
+					64'd0:  $display("\n[SoC TESTBENCH] Unexpected trap: Instruction address misaligned");
+					64'd1:  $display("\n[SoC TESTBENCH] Unexpected trap: Instruction access fault");
+					64'd2:  $display("\n[SoC TESTBENCH] Unexpected trap: Illegal instruction");
+					64'd3:  $display("\n[SoC TESTBENCH] Unexpected trap: Breakpoint (ebreak)");
+					64'd4:  $display("\n[SoC TESTBENCH] Unexpected trap: Load address misaligned");
+					64'd5:  $display("\n[SoC TESTBENCH] Unexpected trap: Load access fault");
+					64'd6:  $display("\n[SoC TESTBENCH] Unexpected trap: Store/AMO address misaligned");
+					64'd7:  $display("\n[SoC TESTBENCH] Unexpected trap: Store/AMO access fault");
+					64'd8:  $display("\n[SoC TESTBENCH] Unexpected trap: Environment call from U-mode (ecall)");
+					64'd9:  $display("\n[SoC TESTBENCH] Unexpected trap: Environment call from S-mode (ecall)");
+					64'd11: $display("\n[SoC TESTBENCH] Unexpected trap: Environment call from M-mode (ecall)");
+					64'd12: $display("\n[SoC TESTBENCH] Unexpected trap: Instruction page fault");
+					64'd13: $display("\n[SoC TESTBENCH] Unexpected trap: Load page fault");
+					64'd15: $display("\n[SoC TESTBENCH] Unexpected trap: Store/AMO page fault");
+					default:$display("\n[SoC TESTBENCH] Unexpected trap: Unknown exception (code=%0d)", dut.i_cva6.csr_regfile_i.mcause_q[62:0]);
+            	endcase
+				$display("[SoC TESTBENCH] mepc  = 0x%016h", dut.i_cva6.csr_regfile_i.mepc_q);
+				$display("[SoC TESTBENCH] mtval = 0x%016h", dut.i_cva6.csr_regfile_i.mtval_q);
+				dump_core();
+				$display("[SoC TESTBENCH] FAIL: Exception caught, see log for details");
+				$fatal(1, "exception caught");
 			end
 
 			if (cycle_count > timeout) begin
