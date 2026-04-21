@@ -15,11 +15,13 @@
 `include "axi/assign.svh"
 
 module cva6_barebones (
-	input 	logic clk_i,
-	input 	logic rst_ni,
+	input 	logic		clk_i,
+	input 	logic		rst_ni,
 
-	input	logic rx_i,
-	output	logic tx_o
+	input	logic		rx_i,
+	output	logic		tx_o,
+	
+	inout	logic[7:0]	gpio_io
 );
 	import cva6_barebones_pkg::*;
 
@@ -206,5 +208,28 @@ module cva6_barebones (
 		.addr_i		( bootrom_addr	),
 		.data_o		( bootrom_data	)
 	);
+
+	// GPIO
+	noc_req_t 	gpio_req;
+ 	noc_resp_t	gpio_resp;
+	
+  	`AXI_ASSIGN_TO_REQ(gpio_req, master[DEV_GPIO])
+  	`AXI_ASSIGN_FROM_RESP(master[DEV_GPIO], gpio_resp)
+
+	gpio_top #(
+		.AXI_ADDR_WIDTH	(AxiAddrWidth),
+		.AXI_DATA_WIDTH	(AxiDataWidth),
+		.AXI_ID_WIDTH	(AxiIdWidth),
+		.AXI_USER_WIDTH	(AxiUserWidth),
+		.axi_req_t		(noc_req_t),
+		.axi_rsp_t		(noc_resp_t)
+	) i_gpio (
+		.clk_i		(clk_i),
+		.rst_ni 	(rst_ni),
+		.axi_req_i	(gpio_req),
+		.axi_rsp_o	(gpio_resp),
+		.gpio_io	(gpio_io)
+	);
+
 
 endmodule

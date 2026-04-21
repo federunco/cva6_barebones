@@ -19,7 +19,9 @@ SIM_OUT_BASE := $(ROOT_DIR)/verif/out
 
 VERIF_DIR := $(ROOT_DIR)/verif
 BENDER := bender
-VERILATOR := verilator
+VERILATOR ?= verilator
+V_FLAGS ?=
+SIM_THREADS ?= 4
 TARGET_CVA6_ISA := cv64a6_imafdc_sv39
 VERILATED_TB := tb_boot_exe
 PROGRAM ?= not_set
@@ -49,6 +51,10 @@ hw/uart/reg:
 	mkdir -p hw/uart/reg
 	$(PYTHON) $(REGGEN) -r -t ./hw/uart/reg ./hw/uart/uart.hjson 
 
+hw/gpio/reg:
+	mkdir -p hw/gpio/reg
+	$(PYTHON) $(REGGEN) -r -t ./hw/gpio/reg ./hw/gpio/gpio.hjson 
+
 hw/bootrom.sv: sw/bootrom/main.c sw/bootrom/crt.s sw/bootrom/link.ld
 	$(eval include fpga/targets.mk)
 	$(MAKE) -C sw/bootrom TARGET=synth CLK_FREQ=$(FPGA_CLK_FREQ) BAUDRATE=$(FPGA_BAUDRATE) 
@@ -58,7 +64,7 @@ verif/sim_bootrom.sv: sw/bootrom/main.c sw/bootrom/crt.s sw/bootrom/link.ld
 	$(MAKE) -C sw/bootrom TARGET=sim
 	$(PYTHON) $(BROMGEN) --input sw/bootrom/build_sim/bootrom.hex --output verif/sim_bootrom.sv
 
-peripherals: hw/uart/reg
+peripherals: hw/uart/reg hw/gpio/reg
 
 build-program:
 	@if [ ! -f "$(PROGRAM_MAKEFILE)" ]; then \
@@ -79,7 +85,8 @@ verilate: peripherals verif/sim_bootrom.sv
 	grep -v "hpdcache" tmp.flist > "$(FLIST)"
 	rm tmp.flist
 
-	$(VERILATOR) \
+	@bash -o pipefail -c '\
+	"$(VERILATOR)" \
 		--sv \
 		--timing \
 		--bbox-unsup \
@@ -87,13 +94,14 @@ verilate: peripherals verif/sim_bootrom.sv
 		-Wno-fatal \
 		--binary \
 		-O3 \
-		--threads 4 \
+		--threads "$(SIM_THREADS)" \
 		-j 4 \
-		--top-module tb_boot \
+		--top-module tb_boot $(V_FLAGS)\
 		$(if $(filter 1,$(TRACE)),--trace-fst --trace-structs) \
 		-F "$(FLIST)" \
 		-Mdir "$(VERIF_DIR)/build" \
-		-o $(VERILATED_TB) | tee $(SIM_OUT_DIR)/verilate_log.txt
+		-o "$(VERILATED_TB)" | tee "$(SIM_OUT_DIR)/verilate_log.txt" \
+	'
 
 run: build-program verilate
 	mkdir -p $(SIM_OUT_BASE)
@@ -128,6 +136,7 @@ clean:
 	rm -rf "$(VERIF_DIR)/build"
 	rm -f "$(FLIST_RAW)" "$(FLIST)"
 	rm -rf hw/uart/reg
+	rm -rf hw/gpio/reg
 	rm -rf hw/bootrom.sv
 	rm -rf verif/sim_bootrom.sv
 

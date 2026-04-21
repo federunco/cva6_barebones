@@ -15,6 +15,8 @@
 #ifndef _SOC_UART_
 #define _SOC_UART_
 
+#include "regutils.h"
+
 #ifndef BOOTROM
 #include <stdint.h>
 #endif
@@ -29,22 +31,6 @@
 #define UART_CSREG_START_BIT 1
 #define UART_CSREG_EMPTY_BIT 2
 
-static void write_reg_u8(uintptr_t addr, uint8_t value)
-{
-    volatile uint8_t *loc_addr = (volatile uint8_t *)addr;
-    *loc_addr = value;
-}
-
-static void write_reg_u32(uintptr_t addr, uint32_t value)
-{
-    volatile uint32_t *loc_addr = (volatile uint32_t *)addr;
-    *loc_addr = value;
-}
-
-static uint8_t read_reg_u8(uintptr_t addr)
-{
-    return *(volatile uint8_t *)addr;
-}
 
 int uart_read(uint8_t *res)
 {

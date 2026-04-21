@@ -9,9 +9,11 @@ verif/*.flist
 verif/sim_bootrom.sv
 sw/*/build*
 hw/uart/reg
+hw/gpio/reg
 hw/bootrom.sv
 *.jou
 *.log
+*.csv
 fpga/build
 fpga/out
 fpga/scripts/import_sources.tcl

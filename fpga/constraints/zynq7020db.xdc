@@ -17,4 +17,13 @@ set_property -dict {PACKAGE_PIN J20  IOSTANDARD LVCMOS33} [get_ports rst_ni]
 set_property -dict {PACKAGE_PIN M17  IOSTANDARD LVCMOS33} [get_ports rx_i]
 set_property -dict {PACKAGE_PIN L17  IOSTANDARD LVCMOS33} [get_ports tx_o]
 
+set_property -dict {PACKAGE_PIN H19 IOSTANDARD LVCMOS33} [get_ports {gpio_io[0]}]
+set_property -dict {PACKAGE_PIN E18 IOSTANDARD LVCMOS33} [get_ports {gpio_io[1]}]
+set_property -dict {PACKAGE_PIN F17 IOSTANDARD LVCMOS33} [get_ports {gpio_io[2]}]
+set_property -dict {PACKAGE_PIN C17 IOSTANDARD LVCMOS33} [get_ports {gpio_io[3]}]
+set_property -dict {PACKAGE_PIN G19 IOSTANDARD LVCMOS33} [get_ports {gpio_io[4]}]
+set_property -dict {PACKAGE_PIN E20 IOSTANDARD LVCMOS33} [get_ports {gpio_io[5]}]
+set_property -dict {PACKAGE_PIN D22 IOSTANDARD LVCMOS33} [get_ports {gpio_io[6]}]
+set_property -dict {PACKAGE_PIN B22 IOSTANDARD LVCMOS33} [get_ports {gpio_io[7]}]
+
 create_clock -period 20.0 [get_ports clk_i]

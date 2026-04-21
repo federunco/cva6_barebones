@@ -19,6 +19,11 @@ sources:
   - hw/uart/uart_tx.sv
   - hw/uart/uart_top.sv
 
+  - hw/gpio/reg/gpio_reg_pkg.sv
+  - hw/gpio/reg/gpio_reg_top.sv
+  - hw/gpio/gpio.sv
+  - hw/gpio/gpio_top.sv
+
   - target: synthesis
     files:
       - hw/bootrom.sv
