@@ -36,7 +36,7 @@ endif
 bitstream: scripts/import_sources.tcl
 	rm -rf build
 	mkdir -p $(SYNTH_OUT_DIR)
-	$(VIVADO) -mode batch -source scripts/xilinx_build.tcl -tclargs "$(XDC) $(PART_NAME)"
+	$(VIVADO) -mode batch -source scripts/xilinx_build.tcl -tclargs $(XDC) $(PART_NAME)
 	mv syn_timing.rpt $(SYNTH_OUT_DIR)/syn_timing.rpt 
 	mv syn_power.rpt $(SYNTH_OUT_DIR)/syn_power.rpt 
 	mv syn_utilization.rpt $(SYNTH_OUT_DIR)/syn_utilization.rpt 

@@ -14,6 +14,7 @@
 
 `include "cvxif_types.svh"
 `include "axi/typedef.svh"
+`include "rvfi_types.svh"
 
 package cva6_barebones_pkg;
 	// Boot address configuration
