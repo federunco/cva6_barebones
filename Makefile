@@ -38,6 +38,7 @@ SIM_OUT_DIR := $(VERIF_DIR)/out/run-$(shell date +%Y-%m-%d)-$(PROGRAM)
 PROGRAM_DIR := $(ROOT_DIR)/sw/$(PROGRAM)
 PROGRAM_MAKEFILE := $(PROGRAM_DIR)/Makefile
 MEMHEX := $(SIM_OUT_DIR)/program.hex
+ELF_TO_MEMHEX := $(ROOT_DIR)/utils/elf_to_memhex.py
 
 FLIST := $(VERIF_DIR)/soc.flist
 SIM_BIN := $(VERIF_DIR)/build/$(VERILATED_TB)
@@ -73,11 +74,10 @@ build-program:
 	fi
 	@echo $(BASE_HEADER) Building program $(PROGRAM)
 	$(MAKE) -C "$(PROGRAM_DIR)" clean
-	$(MAKE) -C "$(PROGRAM_DIR)"	SKIP_ROM=$(SKIP_ROM)
+	$(MAKE) -C "$(PROGRAM_DIR)"
 
 verilate: peripherals verif/sim_bootrom.sv
-	mkdir -p $(SIM_OUT_BASE)
-	mkdir -p $(SIM_OUT_DIR)
+	mkdir -p $(SIM_OUT_BASE) $(SIM_OUT_DIR)
 
 	@echo $(BASE_HEADER) Compiling the design
 	$(BENDER) script flist-plus -t $(TARGET_CVA6_ISA) -t soc_verilate > tmp.flist
@@ -96,28 +96,33 @@ verilate: peripherals verif/sim_bootrom.sv
 		-O3 \
 		--threads "$(SIM_THREADS)" \
 		-j 4 \
-		--top-module tb_boot $(V_FLAGS)\
+		--top-module soc_testharness $(V_FLAGS)\
 		$(if $(filter 1,$(TRACE)),--trace-fst --trace-structs) \
 		-F "$(FLIST)" \
+		"$(VERIF_DIR)/dpi/uart.c" \
+        -LDFLAGS "-lutil" \
 		-Mdir "$(VERIF_DIR)/build" \
 		-o "$(VERILATED_TB)" | tee "$(SIM_OUT_DIR)/verilate_log.txt" \
 	'
 
 run: build-program verilate
-	mkdir -p $(SIM_OUT_BASE)
 	mkdir -p $(SIM_OUT_DIR)
-	@echo $(BASE_HEADER) Copying build artifacts in output directory
 	@elf_file="$$(find "$(PROGRAM_DIR)" -maxdepth 2 -type f -name '*.elf' | head -n 1)"; \
-	hex_file="$$(find "$(PROGRAM_DIR)" -maxdepth 2 -type f -name '*.hex' | head -n 1)"; \
 	cp "$$elf_file" "$(SIM_OUT_DIR)/program.elf"; \
-	cp "$$hex_file" "$(MEMHEX)";
-	@echo $(BASE_HEADER) Copied $$elf_file in $(SIM_OUT_DIR)/program.elf
-	@echo $(BASE_HEADER) Copied $$hex_file in $(MEMHEX)
+	echo $(BASE_HEADER) Copied $$elf_file in $(SIM_OUT_DIR)/program.elf; \
+	if [ "$(SKIP_ROM)" = "1" ]; then \
+		"$(PYTHON)" "$(ELF_TO_MEMHEX)" \
+			--elf "$(SIM_OUT_DIR)/program.elf" \
+			--out "$(MEMHEX)" \
+			--word-bytes 8 || exit 1; \
+	fi
 	@echo $(BASE_HEADER) Starting simulation
-	"$(SIM_BIN)" +memhex="$(MEMHEX)" +timeout=$(TIMEOUT) +ramboot=$(SKIP_ROM) | tee $(SIM_OUT_DIR)/output.txt
-	mv $(ROOT_DIR)/trace_hart_0.dasm $(SIM_OUT_DIR)/trace_hart_0.dasm 
+	"$(SIM_BIN)" $(if $(filter 1,$(SKIP_ROM)),+memhex="$(MEMHEX)") +timeout=$(TIMEOUT) | tee $(SIM_OUT_DIR)/output.txt
 	@echo $(BASE_HEADER) SoC simulation terminated
 	@echo $(BASE_HEADER) Results transcripts and artifacts available at $(SIM_OUT_DIR)
+	mv $(ROOT_DIR)/trace_hart_0.dasm $(SIM_OUT_DIR)/trace_hart_0.dasm
+	rm "$(SIM_OUT_DIR)/program.hex"
+	rm -rf uart0
 
 fpga: peripherals hw/bootrom.sv
 	$(eval include fpga/targets.mk)
@@ -139,4 +144,5 @@ clean:
 	rm -rf hw/gpio/reg
 	rm -rf hw/bootrom.sv
 	rm -rf verif/sim_bootrom.sv
+	rm -rf uart0
 

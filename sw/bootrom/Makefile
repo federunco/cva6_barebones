@@ -28,16 +28,14 @@ BUILD_DIR := ./build_$(TARGET)
 SRC := main.c
 
 ELF := $(BUILD_DIR)/$(BUILD_PREFIX).elf
-BIN := $(BUILD_DIR)/$(BUILD_PREFIX).bin
 HEX := $(BUILD_DIR)/$(BUILD_PREFIX).hex
 
 TOOLCHAIN_PREFIX := riscv64-unknown-elf
 CC := $(TOOLCHAIN_PREFIX)-gcc
-OBJCOPY := $(TOOLCHAIN_PREFIX)-objcopy
-PYTHON := python3
+PYTHON := python
 
 LDSCRIPT := link.ld
-BIN_TO_MEMHEX := $(ROOT_DIR)/utils/bin_to_memhex.py
+ELF_TO_MEMHEX := $(ROOT_DIR)/utils/elf_to_memhex.py
 CRT := crt.s
 
 CFLAGS := \
@@ -68,7 +66,8 @@ all: $(HEX)
 $(BUILD_DIR):
 	mkdir -p "$@"
 
-$(ELF): $(LDSCRIPT) $(CRT) $(SRC) | $(BUILD_DIR)	
+$(ELF): $(LDSCRIPT) $(CRT) $(SRC) | $(BUILD_DIR)
+	@echo $(BASE_HEADER) Compiling BootROM
 	"$(CC)" \
 		-nostartfiles \
 		$(CFLAGS) \
@@ -76,17 +75,15 @@ $(ELF): $(LDSCRIPT) $(CRT) $(SRC) | $(BUILD_DIR)
 		"$(SRC)" \
 		$(LDFLAGS) \
 		-o "$@"
-	@echo $(BASE_HEADER) Compiling BootROM
 
-$(BIN): $(ELF)
-	"$(OBJCOPY)" -O binary "$<" "$@"
-
-$(HEX): $(BIN)
-	"$(PYTHON)" "$(BIN_TO_MEMHEX)" \
-		--input "$<" \
-		--output "$@" \
+$(HEX): $(ELF) $(ELF_TO_MEMHEX)
+	"$(PYTHON)" "$(ELF_TO_MEMHEX)" \
+		--elf "$<" \
+		--out "$@" \
+		--base auto \
+		--no-bss \
 		--word-bytes 8
-	@echo $(BASE_HEADER) BootROM generated generated at $@
+	@echo $(BASE_HEADER) BootROM memfile generated at $@
 
 clean:
 	rm -rf ./build*

@@ -19,3 +19,4 @@ fpga/out
 fpga/scripts/import_sources.tcl
 fpga/.Xil
 fpga/*.rpt
+uart0

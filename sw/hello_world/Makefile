@@ -16,21 +16,14 @@ BUILD_PREFIX := hello
 ROOT_DIR := $(abspath $(CURDIR)/../..)
 BUILD_DIR := ./build
 
-SKIP_ROM ?= 0
-
 SRC := main.c
 
 ELF := $(BUILD_DIR)/$(BUILD_PREFIX).elf
-BIN := $(BUILD_DIR)/$(BUILD_PREFIX).bin
-HEX := $(BUILD_DIR)/$(BUILD_PREFIX).hex
 
 TOOLCHAIN_PREFIX := riscv64-unknown-elf
 CC := $(TOOLCHAIN_PREFIX)-gcc
-OBJCOPY := $(TOOLCHAIN_PREFIX)-objcopy
-PYTHON := python3
 
 LDSCRIPT := $(ROOT_DIR)/sw/common/link.ld
-BIN_TO_MEMHEX := $(ROOT_DIR)/utils/bin_to_memhex.py
 CRT := $(ROOT_DIR)/sw/common/crt.s
 
 CFLAGS := \
@@ -50,30 +43,19 @@ BASE_HEADER := "[SW COMPILE]"
 
 .PHONY: all clean
 
-all: $(HEX)
+all: $(ELF)
 
 $(BUILD_DIR):
 	mkdir -p "$@"
 
 $(ELF): $(LDSCRIPT) $(CRT) $(SRC) | $(BUILD_DIR)
+	@echo $(BASE_HEADER) Compiling $@
 	"$(CC)" \
 		$(CFLAGS) \
 		"$(CRT)" \
 		"$(SRC)" \
 		$(LDFLAGS) \
 		-o "$@"
-	@echo $(BASE_HEADER) Compiling $@
-
-$(BIN): $(ELF)
-	"$(OBJCOPY)" -O binary "$<" "$@"
-
-$(HEX): $(BIN)
-	"$(PYTHON)" "$(BIN_TO_MEMHEX)" \
-		--input "$<" \
-		--output "$@" \
-		--word-bytes 8 \
-		$(if $(filter 0,$(SKIP_ROM)),--header)
-	@echo $(BASE_HEADER) SRAM memfile generated at $@
 
 clean:
 	rm -rf "$(BUILD_DIR)"

@@ -17,68 +17,88 @@
 #include "uart.h"
 #include "encoding.h"
 
-// Timeout in seconds for program upload
-#define TIMEOUT			1
+#define TIMEOUT         1
 
-#ifdef	SYNTHESIS
-#define UART_DIVIDER	(CLK_FREQ / 16 / BAUDRATE) - 1 
+#ifdef SYNTHESIS
+#define UART_DIVIDER    (CLK_FREQ / 16 / BAUDRATE) - 1 
 #else
-// Smaller values to allow a fast simulation of BootROM
-#define UART_DIVIDER	1
-#define CLK_FREQ		10000
+#define UART_DIVIDER    1
+#define CLK_FREQ        10000
 #endif
 
-int get_incoming_32b (){
-	uint8_t tmp[4];
-	uint32_t res;
-
-	while(!uart_read(&tmp[0]));
-	while(!uart_read(&tmp[1]));
-	while(!uart_read(&tmp[2]));
-	while(!uart_read(&tmp[3]));
-
-	res = tmp[0] | (tmp[1] << 8) | (tmp[2] << 16) | (tmp[3] << 24);
-
-	return res;
+static inline uint8_t uart_getc(void) {
+    uint8_t c;
+    while (!uart_read(&c));
+    return c;
 }
 
-void main (){
-	uint8_t		shamt = 0;
-	uint32_t	signature = 0;
-	uint8_t		tmp;
-	uint8_t*	RAM_BASE = (uint8_t *) 0x80000000UL;
+uint32_t get_incoming_32b(void) {
+    uint32_t res = 0;
+    for (int i = 0; i < 4; i++) {
+        res |= ((uint32_t)uart_getc()) << (i * 8);
+    }
+    return res;
+}
 
-	set_uart_div(UART_DIVIDER); 
-	print_uart("BOOTRDY\n");
+uintptr_t get_incoming_ptr(void) {
+    uintptr_t res = 0;
+    for (unsigned int i = 0; i < sizeof(uintptr_t); i++) {
+        res |= ((uintptr_t)uart_getc()) << (i * 8);
+    }
+    return res;
+}
+
+void main(void) {
+    uint32_t signature = 0;
+    uint8_t tmp;
+    uintptr_t entry_point = 0x80000000UL;
+
+    set_uart_div(UART_DIVIDER);
+    print_uart("BOOTRDY\n");
 
     clear_csr(mcountinhibit, 1);
     write_csr(mcycle, 0);
 
-	while (CLK_FREQ * TIMEOUT > read_csr(mcycle)){
-		if (uart_read(&tmp)) {
-			signature |= ((uint32_t)tmp) << shamt;
-			shamt += 8;
+    while (CLK_FREQ * TIMEOUT > read_csr(mcycle)) {
+        if (uart_read(&tmp)) {
+            signature = (signature >> 8) | ((uint32_t)tmp << 24);
+            if (signature == 0xB007BABE) break;
+        }
+    }
 
-			if (shamt == 32) {
-				shamt = 0;
-				if (signature == 0xB007BABE) break;
-			}
-		}
-	}
+    if (signature == 0xB007BABE) {
+        entry_point = get_incoming_ptr();
+        uint32_t num_segments = get_incoming_32b();
 
-	if (signature == 0xB007BABE) {
-		uint32_t size = get_incoming_32b();
-		print_uart("UPLDRDY");
-		for (uint32_t i = 0; i < size; i++){
-			while(!uart_read(&tmp));
-			*RAM_BASE = tmp;
-			RAM_BASE++;
-		}
-	}
+        print_uart("UPLDRDY");
 
-	print_uart("JMP\n");
-	__asm__ volatile(
-        "li t0, 0x80000000;"
-        "jr t0"
-	);
+        for (uint32_t s = 0; s < num_segments; s++) {
+            uint8_t *dst    = (uint8_t *)get_incoming_ptr();
+            uint32_t filesz = get_incoming_32b();
+            uint32_t memsz  = get_incoming_32b();
+
+            // Write initialized bytes from UART
+            for (uint32_t i = 0; i < filesz; i++) {
+                dst[i] = uart_getc();
+            }
+
+            // Zero out remaining .bss memory
+            for (uint32_t i = filesz; i < memsz; i++) {
+                dst[i] = 0;
+            }
+
+            // Acknowledge segment completion (prevents UART RX overrun during .bss zeroing)
+            print_uart(".");
+        }
+    }
+
+    print_uart("JMP\n");
+
+    __asm__ volatile (
+        "fence.i\n\t"
+        "jr %0\n\t"
+        :
+        : "r"(entry_point)
+        : "memory"
+    );
 }

@@ -13,76 +13,140 @@
 # under the License.
 
 import argparse
+import struct
 import sys
 import time
 from pathlib import Path
 
 import serial
+from elftools.elf.elffile import ELFFile
+from serial.tools.miniterm import Miniterm
+from tqdm import tqdm
+
+MAGIC = 0xB007BABE
+CHUNK = 1024
 
 def main():
-    parser = argparse.ArgumentParser(description="CVA6 Barebones uploader")
-    parser.add_argument("--hex", required=True, help="Input HEX file")
-    parser.add_argument("--port", required=True, help="Device serial port")
+    parser = argparse.ArgumentParser(description="CVA6 Barebones ELF uploader")
+    parser.add_argument("--elf", required=True, help="Input ELF file")
+    parser.add_argument("--port", required=True, help="Device serial port (e.g. /dev/ttyUSB0 or ./uart0)")
     parser.add_argument("--baud", type=int, default=115200, help="Baudrate used for program upload")
     parser.add_argument("--timeout", type=float, default=5.0, help="Handshake timeout in seconds")
     parser.add_argument("--prg-timeout", type=float, default=5.0, help="Seconds to keep reading UART after JMP until idle")
+    parser.add_argument("-i", "--interactive", action="store_true", help="Drop into interactive serial console after JMP")
     args = parser.parse_args()
 
-    hex_path = Path(args.hex)
-    if not hex_path.exists():
-        raise FileNotFoundError(f"HEX file not found: {hex_path}")
+    elf_path = Path(args.elf)
+    if not elf_path.exists():
+        raise FileNotFoundError(f"ELF file not found: {elf_path}")
 
-    payloads = load_firmware(hex_path)
+    entry, segments, is_64 = load_elf(elf_path)
+    ptr_fmt = "Q" if is_64 else "I"
+    hdr_fmt = f"<{ptr_fmt}II"
+
+    print(f"Detected entrypoint: 0x{entry:08x},  segments: {len(segments)}")
 
     with serial.Serial(args.port, args.baud, timeout=0.1) as ser:
         print("Waiting for BootROM (rst core to trigger)...")
         wait_for_string(ser, "BOOTRDY", args.timeout)
 
         print("Sending handshake...")
-        ser.write(payloads[0])
-        flush(ser)
+        handshake = struct.pack(f"<I{ptr_fmt}I", MAGIC, entry, len(segments))
+        ser.write(handshake)
+        ser.flush()
 
         print("Waiting for response...")
         wait_for_string(ser, "UPLDRDY", args.timeout)
-        
+
         print("Upload started...")
-        total_bytes = len(payloads[0])
-        for payload in payloads[1:]:
-            ser.write(payload)
-            total_bytes += len(payload)
-            flush(ser)
+        total_bytes = len(handshake)
+
+        # Segment headers + segment data (what the progress bar counts)
+        payload_total = sum(struct.calcsize(hdr_fmt) + seg["filesz"] for seg in segments)
+
+        with tqdm(
+            total=payload_total,
+            unit="B",
+            unit_scale=True,
+            unit_divisor=1024,
+            desc="Upload",
+            dynamic_ncols=True,
+        ) as bar:
+            for i, seg in enumerate(segments):
+                bar.set_postfix_str(f"seg {i + 1}/{len(segments)}")
+
+                hdr = struct.pack(hdr_fmt, seg["paddr"], seg["filesz"], seg["memsz"])
+                ser.write(hdr)
+                bar.update(len(hdr))
+
+                data = seg["data"]
+                for off in range(0, len(data), CHUNK):
+                    part = data[off:off + CHUNK]
+                    ser.write(part)
+                    bar.update(len(part))
+                ser.flush()
+
+                total_bytes += len(hdr) + seg["filesz"]
+
+                # Wait for BootROM to finish copying + zeroing .bss for this segment
+                bar.set_postfix_str(f"seg {i + 1}/{len(segments)}, BootROM copying")
+                wait_for_string(ser, ".", args.timeout)
+                bar.set_postfix_str("")
+                tqdm.write(f"  -> Segment {i} loaded ({seg['filesz']} bytes sent)")
 
         print(f"Upload complete, {total_bytes} bytes sent.")
         print("Waiting for core to jump to RAM...")
         wait_for_string(ser, "JMP", args.timeout)
 
-        print("Program output:")
-        print("-" * 40)
-        stream_output(ser, args.prg_timeout)
-        print("\n" + "-" * 40)
-
-
-def load_firmware(hex_path):
-    payloads = []
-    with hex_path.open("r", encoding="utf-8") as f:
-        for line_no, raw_line in enumerate(f, start=1):
-            line = raw_line.strip()
-            if not line:
-                continue
-
-            if len(line) % 2 != 0:
-                raise ValueError(f"Invalid hex line length at line {line_no}: '{line}'")
-
+        if args.interactive:
+            print("Interactive Serial Console (Press Ctrl+] to exit)")
+            print("-" * 50)
+            ser.timeout = None
+            miniterm = Miniterm(ser, echo=False, eol="lf")
+            miniterm.exit_character = "\x1d"  # Ctrl+]
+            miniterm.set_rx_encoding("utf-8")
+            miniterm.set_tx_encoding("utf-8")
+            miniterm.start()
             try:
-                raw = bytes.fromhex(line)
-                payloads.append(raw[::-1])
-            except ValueError as e:
-                raise ValueError(f"Invalid hex line at line {line_no}: '{line}'") from e
+                miniterm.join(True)
+            except KeyboardInterrupt:
+                pass
+            finally:
+                miniterm.stop()
+                print("\n" + "-" * 50)
+        else:
+            print("Program output:")
+            print("-" * 40)
+            stream_output(ser, args.prg_timeout)
+            print("\n" + "-" * 40)
 
-    if not payloads:
-        raise ValueError("Input HEX file is empty")
 
-    return payloads
+def load_elf(elf_path: Path):
+    with elf_path.open("rb") as f:
+        elf = ELFFile(f)
+
+        if elf["e_machine"] != "EM_RISCV":
+            raise ValueError(f"Expected EM_RISCV ELF, got {elf['e_machine']}")
+        if not elf.little_endian:
+            raise ValueError("Expected little-endian RISC-V ELF")
+
+        is_64 = (elf.elfclass == 64)
+        entry = elf.header["e_entry"]
+
+        segments = []
+        for seg in elf.iter_segments():
+            if seg["p_type"] == "PT_LOAD" and seg["p_memsz"] > 0:
+                segments.append({
+                    "paddr": seg["p_paddr"],
+                    "filesz": seg["p_filesz"],
+                    "memsz": seg["p_memsz"],
+                    "data": seg.data(),
+                })
+
+        if not segments:
+            raise ValueError("No non-empty PT_LOAD segments found in ELF")
+
+        return entry, segments, is_64
 
 
 def wait_for_string(port, token, timeout):
@@ -97,12 +161,7 @@ def wait_for_string(port, token, timeout):
             if binary_token in buffer:
                 return
 
-    raise TimeoutError(f"Timeout waiting for token '{token}'")
-
-
-def flush(port):
-    while port.in_waiting > 0:
-        port.read(port.in_waiting)
+    raise TimeoutError(f"Timeout waiting for token '{token}' (received: {bytes(buffer)!r})")
 
 
 def stream_output(port, timeout):
@@ -112,13 +171,13 @@ def stream_output(port, timeout):
         if chunk:
             sys.stdout.write(chunk.decode("utf-8", errors="replace"))
             sys.stdout.flush()
-            
+
             # Drain the rest of the available bytes quickly
             if port.in_waiting > 0:
                 extra = port.read(port.in_waiting)
                 sys.stdout.write(extra.decode("utf-8", errors="replace"))
                 sys.stdout.flush()
-                
+
             deadline = time.monotonic() + timeout
         elif time.monotonic() >= deadline:
             break
